@@ -491,7 +491,7 @@ export default function Home() {
         </div>
 
         <footer className="mt-12 pt-6 border-t border-[#1e1e2e] flex items-center justify-between text-xs text-gray-600">
-          <span>ComplexityIQ — Built with Next.js + Claude API</span>
+          <span>ComplexityIQ — Built with Next.js + Groq API</span>
           <span>by <a href="https://roshnithakor07.github.io" className="text-purple-500 hover:text-purple-400">Roshni Thakor</a></span>
         </footer>
       </div>

@@ -1,9 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const SYSTEM_PROMPT = `You are ComplexityIQ — an expert algorithm analyst specialising in Big-O notation and computational complexity theory.
 
@@ -42,7 +40,7 @@ Score is 0-100 (100 = best).
 
 Rating guide:
 - O(1), O(log n) → excellent
-- O(n) → good  
+- O(n) → good
 - O(n log n) → fair
 - O(n²) → poor
 - O(2^n), O(n!) → critical
@@ -64,21 +62,19 @@ export async function POST(request) {
       );
     }
 
-    const message = await client.messages.create({
-      model: "claude-opus-4-5",
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+    const message = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.1,
       messages: [
+        { role: "system", content: SYSTEM_PROMPT },
         {
           role: "user",
-          content: `Analyse this ${language} code:\n\n\`\`\`${language}\n${code}\n\`\`\``,
+          content: `Analyse this ${language} code:\n\n\`\`\`${language}\n${code}\n\`\`\`\n\nReturn ONLY valid JSON, no markdown.`,
         },
       ],
     });
 
-    const raw = message.content[0].text.trim();
-
-    // Strip markdown code fences if present
+    const raw   = message.choices[0].message.content.trim();
     const clean = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
 
     let result;
@@ -95,10 +91,10 @@ export async function POST(request) {
   } catch (error) {
     console.error("Analysis error:", error);
 
-    if (error.status === 401) {
+    if (error?.status === 429) {
       return NextResponse.json(
-        { error: "Invalid API key. Check your ANTHROPIC_API_KEY." },
-        { status: 401 }
+        { error: "Rate limit hit. Please wait a moment and try again." },
+        { status: 429 }
       );
     }
 
