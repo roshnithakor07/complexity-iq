@@ -3,9 +3,11 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { SAMPLES, LANGUAGES, RATING_CONFIG } from "../lib/constants";
 
-// ─── Validation ────────────────────────────────────────────────────────────
-const MIN_CHARS    = 20;
-const CODE_PATTERN = /[{}();=><\[\]]/;
+// ─── Constants ─────────────────────────────────────────────────────────────
+const MIN_CHARS     = 20;
+const CODE_PATTERN  = /[{}();=><\[\]]/;
+const HISTORY_KEY   = "complexityiq_history";
+const MAX_HISTORY   = 50;
 
 function validateCode(code) {
   const t = code.trim();
@@ -15,21 +17,11 @@ function validateCode(code) {
   return null;
 }
 
-// ─── Complexity rank (lower = better, used for chart + compare winner) ─────
+// ─── Complexity rank ───────────────────────────────────────────────────────
 const COMPLEXITY_RANK = {
-  "O(1)":       0,
-  "O(log n)":   1,
-  "O(sqrt n)":  1.5,
-  "O(n)":       2,
-  "O(n log n)": 3,
-  "O(n log n)": 3,
-  "O(n²)":      4,
-  "O(n^2)":     4,
-  "O(n³)":      5,
-  "O(n^3)":     5,
-  "O(2^n)":     5.5,
-  "O(2ⁿ)":      5.5,
-  "O(n!)":      6,
+  "O(1)": 0, "O(log n)": 1, "O(sqrt n)": 1.5, "O(n)": 2,
+  "O(n log n)": 3, "O(n²)": 4, "O(n^2)": 4,
+  "O(n³)": 5, "O(n^3)": 5, "O(2^n)": 5.5, "O(2ⁿ)": 5.5, "O(n!)": 6,
 };
 
 function getRank(notation) {
@@ -39,6 +31,25 @@ function getRank(notation) {
     || k.toLowerCase() === notation.toLowerCase()
   );
   return key !== undefined ? COMPLEXITY_RANK[key] : 3;
+}
+
+// ─── LocalStorage History helpers ──────────────────────────────────────────
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }
+  catch { return []; }
+}
+
+function saveHistory(entries) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY))); }
+  catch {}
+}
+
+function addToHistory(entry) {
+  const existing = loadHistory();
+  const newEntry = { id: Date.now(), ...entry };
+  const updated  = [newEntry, ...existing].slice(0, MAX_HISTORY);
+  saveHistory(updated);
+  return updated;
 }
 
 // ─── Icons ─────────────────────────────────────────────────────────────────
@@ -54,11 +65,16 @@ const Icon = {
   ChevronDown: () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><polyline points="6 9 12 15 18 9"/></svg>),
   Flask:       () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><path d="M10 2v7.31l-5.24 9.54A2 2 0 0 0 6.5 22h11a2 2 0 0 0 1.74-2.99L14 9.31V2"/><line x1="8.5" y1="2" x2="15.5" y2="2"/></svg>),
   AlertCircle: () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>),
-  GitHub:      () => (<svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>),
   Trophy:      () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H17l-1 7a5 5 0 0 1-10 0z"/><path d="M5 4H2v3a3 3 0 0 0 3 3M19 4h3v3a3 3 0 0 1-3 3"/></svg>),
-  ArrowRight:  () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>),
   GitCompare:  () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/><polyline points="15 9 18 6 21 9"/><polyline points="9 15 6 18 3 15"/></svg>),
   BarChart:    () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>),
+  History:     () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>),
+  ArrowRight:  () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>),
+  TrendUp:     () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>),
+  TrendDown:   () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>),
+  Reload:      () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>),
+  Delete:      () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>),
+  Star:        () => (<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" className="w-3 h-3"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>),
 };
 
 // ─── Language meta ─────────────────────────────────────────────────────────
@@ -87,11 +103,9 @@ function LanguageDropdown({ language, onChange }) {
 
   return (
     <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen((o) => !o)}
+      <button onClick={() => setOpen((o) => !o)}
         style={{ borderColor: open ? meta.bg + "60" : undefined }}
-        className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 bg-[#111118] border border-[#1e1e2e] rounded-xl text-sm text-gray-200 hover:border-[#2e2e3e] transition-all w-[200px] justify-between"
-      >
+        className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 bg-[#111118] border border-[#1e1e2e] rounded-xl text-sm text-gray-200 hover:border-[#2e2e3e] transition-all w-[200px] justify-between">
         <div className="flex items-center gap-2.5">
           <span className="w-8 h-7 rounded-lg flex items-center justify-center font-mono font-bold text-[10px] shrink-0" style={{ background: meta.bg, color: meta.text }}>{meta.icon}</span>
           <div className="text-left">
@@ -101,7 +115,6 @@ function LanguageDropdown({ language, onChange }) {
         </div>
         <span className={`text-gray-600 transition-transform duration-200 shrink-0 ${open ? "rotate-180" : ""}`}><Icon.ChevronDown /></span>
       </button>
-
       {open && (
         <div className="absolute top-full left-0 mt-2 w-[240px] bg-[#0d0d14] border border-[#1e1e2e] rounded-2xl z-[999] shadow-2xl shadow-black/80 overflow-hidden">
           <div className="px-3 pt-3 pb-2 border-b border-[#1e1e2e]">
@@ -109,18 +122,15 @@ function LanguageDropdown({ language, onChange }) {
           </div>
           <div className="p-1.5 space-y-0.5">
             {LANGUAGES.map((l) => {
-              const m        = LANG_META[l.value] || LANG_META.javascript;
+              const m = LANG_META[l.value] || LANG_META.javascript;
               const isActive = l.value === language;
               return (
                 <button key={l.value} onClick={() => { onChange(l.value); setOpen(false); }}
                   style={isActive ? { background: m.glow, borderColor: m.bg + "40" } : {}}
-                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-sm text-left transition-all border ${isActive ? "border-transparent" : "border-transparent hover:bg-[#1a1a24] hover:border-[#2e2e3e]"}`}
-                >
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-sm text-left transition-all border ${isActive ? "border-transparent" : "border-transparent hover:bg-[#1a1a24] hover:border-[#2e2e3e]"}`}>
                   <span className="w-7 h-6 rounded-md flex items-center justify-center font-mono font-bold text-[9px] shrink-0" style={{ background: m.bg, color: m.text, opacity: isActive ? 1 : 0.75 }}>{m.icon}</span>
                   <span className={`text-xs font-medium flex-1 ${isActive ? "text-white" : "text-gray-400"}`}>{l.label}</span>
-                  {SAMPLES[l.value] && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-md font-mono font-semibold shrink-0" style={{ background: m.bg + "25", color: m.bg === "#f7df1e" ? "#a89000" : m.bg }}>demo</span>
-                  )}
+                  {SAMPLES[l.value] && <span className="text-[9px] px-1.5 py-0.5 rounded-md font-mono font-semibold shrink-0" style={{ background: m.bg + "25", color: m.bg === "#f7df1e" ? "#a89000" : m.bg }}>demo</span>}
                 </button>
               );
             })}
@@ -142,8 +152,8 @@ function AnalysingLoader() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center py-16 gap-5">
       <div className="relative w-12 h-12">
-        <div className="absolute inset-0 rounded-full border-2 border-purple-800/40" />
-        <div className="absolute inset-0 rounded-full border-2 border-t-purple-500 animate-spin" />
+        <div className="absolute inset-0 rounded-full border-2 border-purple-800/40"/>
+        <div className="absolute inset-0 rounded-full border-2 border-t-purple-500 animate-spin"/>
       </div>
       <div className="text-center">
         <p className="text-sm text-purple-300 font-mono mb-1">{steps[step]}</p>
@@ -153,193 +163,152 @@ function AnalysingLoader() {
   );
 }
 
-// ─── Big-O Growth Chart ────────────────────────────────────────────────────
-// Pure SVG, no library — plots standard complexity curves + highlights user result
+// ─── Big-O Chart ───────────────────────────────────────────────────────────
 function BigOChart({ notation }) {
   const W = 340, H = 160, PAD = { t: 12, r: 12, b: 28, l: 36 };
   const cW = W - PAD.l - PAD.r;
   const cH = H - PAD.t - PAD.b;
-  const N  = 25; // x-axis data points
-
+  const N  = 25;
   const clamp = (v) => Math.min(v, cH);
-
-  // Curve definitions
   const curves = [
-    { label: "O(1)",       color: "#22d3ee", dash: false, fn: ()      => 4                                    },
-    { label: "O(log n)",   color: "#34d399", dash: false, fn: (i)     => Math.log2(i + 1) * 8                 },
-    { label: "O(n)",       color: "#a3e635", dash: false, fn: (i)     => i * (cH / N)                         },
-    { label: "O(n log n)", color: "#facc15", dash: false, fn: (i)     => i * Math.log2(i + 1) * (cH / (N * Math.log2(N + 1))) },
-    { label: "O(n²)",      color: "#fb923c", dash: false, fn: (i)     => (i * i) * (cH / (N * N))             },
-    { label: "O(2ⁿ)",      color: "#f87171", dash: true,  fn: (i)     => Math.pow(2, i) * (cH / Math.pow(2, N)) },
+    { label: "O(1)",       color: "#22d3ee", fn: ()  => 4                                                     },
+    { label: "O(log n)",   color: "#34d399", fn: (i) => Math.log2(i + 1) * 8                                  },
+    { label: "O(n)",       color: "#a3e635", fn: (i) => i * (cH / N)                                          },
+    { label: "O(n log n)", color: "#facc15", fn: (i) => i * Math.log2(i + 1) * (cH / (N * Math.log2(N + 1))) },
+    { label: "O(n²)",      color: "#fb923c", fn: (i) => (i * i) * (cH / (N * N))                              },
+    { label: "O(2ⁿ)",      color: "#f87171", dash: true, fn: (i) => Math.pow(2, i) * (cH / Math.pow(2, N))   },
   ];
-
-  // Normalize: notation string → label key
-  const normalize = (n = "") =>
-    n.replace(/n\^2/gi,"n²").replace(/n\^3/gi,"n³").replace(/2\^n/gi,"2ⁿ").replace(/\s/g,"");
-
+  const normalize = (n = "") => n.replace(/n\^2/gi,"n²").replace(/2\^n/gi,"2ⁿ").replace(/\s/g,"");
   const highlighted = normalize(notation || "");
-
   const toPoints = (fn) =>
     Array.from({ length: N + 1 }, (_, i) => {
       const x = PAD.l + (i / N) * cW;
       const y = PAD.t + cH - clamp(fn(i));
       return `${x},${y}`;
     }).join(" ");
-
-  // Y-axis labels
-  const yTicks = [0, 0.5, 1].map((pct) => ({
-    y: PAD.t + cH - pct * cH,
-    label: pct === 0 ? "0" : pct === 0.5 ? "mid" : "high",
-  }));
-
-  // X-axis labels
-  const xTicks = [0, 0.5, 1].map((pct) => ({
-    x: PAD.l + pct * cW,
-    label: pct === 0 ? "0" : pct === 0.5 ? "n/2" : "n",
-  }));
-
+  const xTicks = [0, 0.5, 1].map((p) => ({ x: PAD.l + p * cW, label: p === 0 ? "0" : p === 0.5 ? "n/2" : "n" }));
   return (
     <div className="bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl p-4">
       <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono mb-3">Big-O Growth Curve</p>
       <svg width={W} height={H} className="w-full" viewBox={`0 0 ${W} ${H}`}>
-        {/* Grid lines */}
-        {[0.25, 0.5, 0.75, 1].map((pct) => (
-          <line key={pct}
-            x1={PAD.l} y1={PAD.t + cH - pct * cH}
-            x2={PAD.l + cW} y2={PAD.t + cH - pct * cH}
-            stroke="#1e1e2e" strokeWidth="1"
-          />
-        ))}
-
-        {/* Axes */}
-        <line x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PAD.t + cH} stroke="#2e2e3e" strokeWidth="1.5"/>
-        <line x1={PAD.l} y1={PAD.t + cH} x2={PAD.l + cW} y2={PAD.t + cH} stroke="#2e2e3e" strokeWidth="1.5"/>
-
-        {/* Y-axis label */}
-        <text x={10} y={PAD.t + cH / 2} fill="#4b5563" fontSize="9" textAnchor="middle"
-          transform={`rotate(-90, 10, ${PAD.t + cH / 2})`} fontFamily="monospace">ops</text>
-
-        {/* X-axis ticks */}
-        {xTicks.map(({ x, label }) => (
-          <text key={label} x={x} y={H - 6} fill="#4b5563" fontSize="8" textAnchor="middle" fontFamily="monospace">{label}</text>
-        ))}
-
-        {/* Curves — draw non-highlighted first (dimmed), then highlighted on top */}
-        {curves.map(({ label, color, dash, fn }) => {
-          const isHit = highlighted.includes(label.replace(/\s/g,"")) ||
-                        label.replace(/\s/g,"") === highlighted;
-          if (isHit) return null; // draw last
-          return (
-            <polyline key={label} points={toPoints(fn)}
-              fill="none" stroke={color} strokeWidth="1.2"
-              strokeDasharray={dash ? "3 3" : undefined}
-              opacity="0.18"
-            />
-          );
+        {[0.25,0.5,0.75,1].map((p) => <line key={p} x1={PAD.l} y1={PAD.t+cH-p*cH} x2={PAD.l+cW} y2={PAD.t+cH-p*cH} stroke="#1e1e2e" strokeWidth="1"/>)}
+        <line x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PAD.t+cH} stroke="#2e2e3e" strokeWidth="1.5"/>
+        <line x1={PAD.l} y1={PAD.t+cH} x2={PAD.l+cW} y2={PAD.t+cH} stroke="#2e2e3e" strokeWidth="1.5"/>
+        <text x={10} y={PAD.t+cH/2} fill="#4b5563" fontSize="9" textAnchor="middle" transform={`rotate(-90,10,${PAD.t+cH/2})`} fontFamily="monospace">ops</text>
+        {xTicks.map(({x,label}) => <text key={label} x={x} y={H-6} fill="#4b5563" fontSize="8" textAnchor="middle" fontFamily="monospace">{label}</text>)}
+        {curves.map(({label,color,dash,fn}) => {
+          const isHit = highlighted.includes(label.replace(/\s/g,"")) || label.replace(/\s/g,"")=== highlighted;
+          if (isHit) return null;
+          return <polyline key={label} points={toPoints(fn)} fill="none" stroke={color} strokeWidth="1.2" strokeDasharray={dash?"3 3":undefined} opacity="0.18"/>;
         })}
-
-        {/* Highlighted curve — drawn on top with glow */}
-        {curves.map(({ label, color, dash, fn }) => {
-          const isHit = highlighted.includes(label.replace(/\s/g,"")) ||
-                        label.replace(/\s/g,"") === highlighted;
+        {curves.map(({label,color,dash,fn}) => {
+          const isHit = highlighted.includes(label.replace(/\s/g,"")) || label.replace(/\s/g,"")=== highlighted;
           if (!isHit) return null;
           return (
-            <g key={label + "-hi"}>
-              {/* Glow layer */}
+            <g key={label+"-hi"}>
               <polyline points={toPoints(fn)} fill="none" stroke={color} strokeWidth="6" opacity="0.15"/>
-              {/* Main line */}
-              <polyline points={toPoints(fn)} fill="none" stroke={color} strokeWidth="2.5"
-                strokeDasharray={dash ? "4 4" : undefined}/>
+              <polyline points={toPoints(fn)} fill="none" stroke={color} strokeWidth="2.5" strokeDasharray={dash?"4 4":undefined}/>
             </g>
           );
         })}
-
-        {/* Legend */}
-        {curves.map(({ label, color }, idx) => {
-          const isHit = highlighted.includes(label.replace(/\s/g,"")) ||
-                        label.replace(/\s/g,"") === highlighted;
-          const col  = idx < 3 ? 0 : 1;
-          const row  = idx % 3;
-          const lx   = PAD.l + col * 164;
-          const ly   = PAD.t + row * 14;
+        {curves.map(({label,color},idx) => {
+          const isHit = highlighted.includes(label.replace(/\s/g,"")) || label.replace(/\s/g,"")=== highlighted;
+          const col = idx<3?0:1; const row = idx%3;
+          const lx = PAD.l+col*164; const ly = PAD.t+row*14;
           return (
-            <g key={label + "-leg"} opacity={isHit ? 1 : 0.35}>
-              <rect x={lx} y={ly + 2} width="14" height="2.5" rx="1" fill={color}/>
-              <text x={lx + 18} y={ly + 7} fill={isHit ? color : "#6b7280"} fontSize="8.5"
-                fontFamily="monospace" fontWeight={isHit ? "700" : "400"}>{label}</text>
+            <g key={label+"-leg"} opacity={isHit?1:0.35}>
+              <rect x={lx} y={ly+2} width="14" height="2.5" rx="1" fill={color}/>
+              <text x={lx+18} y={ly+7} fill={isHit?color:"#6b7280"} fontSize="8.5" fontFamily="monospace" fontWeight={isHit?"700":"400"}>{label}</text>
             </g>
           );
         })}
       </svg>
-      {notation && (
-        <p className="text-[10px] text-gray-500 mt-2 font-mono">
-          Your code → <span className="text-purple-400 font-semibold">{notation}</span> is highlighted above
-        </p>
-      )}
+      {notation && <p className="text-[10px] text-gray-500 mt-2 font-mono">Your code → <span className="text-purple-400 font-semibold">{notation}</span> highlighted</p>}
     </div>
   );
 }
 
-// ─── Rating config helper ──────────────────────────────────────────────────
+// ─── Score Sparkline (mini trend chart for history) ────────────────────────
+function ScoreSparkline({ scores }) {
+  if (!scores || scores.length < 2) return null;
+  const W = 80, H = 28, PAD = 4;
+  const min = Math.min(...scores);
+  const max = Math.max(...scores);
+  const range = max - min || 1;
+  const pts = scores.map((s, i) => {
+    const x = PAD + (i / (scores.length - 1)) * (W - PAD * 2);
+    const y = H - PAD - ((s - min) / range) * (H - PAD * 2);
+    return `${x},${y}`;
+  }).join(" ");
+  const last  = scores[scores.length - 1];
+  const first = scores[0];
+  const color = last >= first ? "#34d399" : "#f87171";
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      {/* Last dot */}
+      {(() => {
+        const lx = PAD + ((scores.length-1) / (scores.length-1)) * (W - PAD*2);
+        const ly = H - PAD - ((last - min) / range) * (H - PAD*2);
+        return <circle cx={lx} cy={ly} r="2.5" fill={color}/>;
+      })()}
+    </svg>
+  );
+}
+
+// ─── Rating helpers ────────────────────────────────────────────────────────
 const RATING = {
-  excellent: { color: "#22d3ee", bg: "rgba(34,211,238,0.08)", border: "rgba(34,211,238,0.25)", label: "Excellent" },
-  good:      { color: "#34d399", bg: "rgba(52,211,153,0.08)", border: "rgba(52,211,153,0.25)", label: "Good"      },
-  fair:      { color: "#facc15", bg: "rgba(250,204,21,0.08)", border: "rgba(250,204,21,0.25)", label: "Fair"      },
-  poor:      { color: "#fb923c", bg: "rgba(251,146,60,0.08)", border: "rgba(251,146,60,0.25)", label: "Poor"      },
-  critical:  { color: "#f87171", bg: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.25)", label: "Critical" },
+  excellent: { color: "#22d3ee", bg: "rgba(34,211,238,0.08)",  border: "rgba(34,211,238,0.25)", label: "Excellent" },
+  good:      { color: "#34d399", bg: "rgba(52,211,153,0.08)",  border: "rgba(52,211,153,0.25)", label: "Good"      },
+  fair:      { color: "#facc15", bg: "rgba(250,204,21,0.08)",  border: "rgba(250,204,21,0.25)", label: "Fair"      },
+  poor:      { color: "#fb923c", bg: "rgba(251,146,60,0.08)",  border: "rgba(251,146,60,0.25)", label: "Poor"      },
+  critical:  { color: "#f87171", bg: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.25)", label: "Critical"  },
 };
 
 function ratingStyle(r) { return RATING[r] || RATING.fair; }
 
 // ─── Score Ring ────────────────────────────────────────────────────────────
 function ScoreRing({ score, size = 72 }) {
-  const r    = (size - 8) / 2;
-  const circ = 2 * Math.PI * r;
-  const dash = (score / 100) * circ;
+  const r = (size - 8) / 2, circ = 2 * Math.PI * r;
+  const dash  = (score / 100) * circ;
   const color = score >= 80 ? "#22d3ee" : score >= 60 ? "#34d399" : score >= 40 ? "#facc15" : score >= 20 ? "#fb923c" : "#f87171";
   return (
     <svg width={size} height={size} className="shrink-0">
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1e1e2e" strokeWidth="6"/>
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="6"
-        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
-        transform={`rotate(-90 ${size/2} ${size/2})`}/>
-      <text x={size/2} y={size/2 + 1} textAnchor="middle" dominantBaseline="middle"
+        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`}/>
+      <text x={size/2} y={size/2+1} textAnchor="middle" dominantBaseline="middle"
         fill={color} fontSize="15" fontWeight="700" fontFamily="monospace">{score}</text>
     </svg>
   );
 }
 
-// ─── Result Panel (single analysis) ───────────────────────────────────────
+// ─── Result Panel ──────────────────────────────────────────────────────────
 function ResultPanel({ result, showChart = true }) {
   const { time_complexity: tc, space_complexity: sc, overall_score,
           loops_detected, recursive, best_case, worst_case, average_case,
           bottleneck, suggestions } = result;
-
   const tcStyle = ratingStyle(tc?.rating);
   const scStyle = ratingStyle(sc?.rating);
-
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Score + complexities row */}
       <div className="flex gap-3">
         <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl p-4 flex flex-col items-center justify-center gap-1 min-w-[88px]">
-          <ScoreRing score={overall_score} />
+          <ScoreRing score={overall_score}/>
           <p className="text-[10px] text-gray-600 font-mono mt-1">Score</p>
         </div>
         <div className="flex-1 space-y-3">
-          {/* Time */}
           <div className="bg-[#111118] border rounded-xl px-4 py-3" style={{ borderColor: tcStyle.border }}>
             <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1.5 text-xs text-gray-400"><Icon.Clock /><span>Time</span></div>
+              <div className="flex items-center gap-1.5 text-xs text-gray-400"><Icon.Clock/><span>Time</span></div>
               <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold" style={{ background: tcStyle.bg, color: tcStyle.color, border: `1px solid ${tcStyle.border}` }}>{tcStyle.label}</span>
             </div>
             <p className="font-mono font-bold text-lg" style={{ color: tcStyle.color }}>{tc?.notation}</p>
             <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">{tc?.explanation}</p>
           </div>
-          {/* Space */}
           <div className="bg-[#111118] border rounded-xl px-4 py-3" style={{ borderColor: scStyle.border }}>
             <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1.5 text-xs text-gray-400"><Icon.Box /><span>Space</span></div>
+              <div className="flex items-center gap-1.5 text-xs text-gray-400"><Icon.Box/><span>Space</span></div>
               <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold" style={{ background: scStyle.bg, color: scStyle.color, border: `1px solid ${scStyle.border}` }}>{scStyle.label}</span>
             </div>
             <p className="font-mono font-bold text-lg" style={{ color: scStyle.color }}>{sc?.notation}</p>
@@ -347,50 +316,40 @@ function ResultPanel({ result, showChart = true }) {
           </div>
         </div>
       </div>
-
-      {/* Big-O Chart */}
-      {showChart && <BigOChart notation={tc?.notation} />}
-
-      {/* Cases */}
+      {showChart && <BigOChart notation={tc?.notation}/>}
       <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-4 py-3">
         <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-2.5">Case Analysis</p>
         <div className="grid grid-cols-3 gap-2">
-          {[["Best", best_case, "#34d399"], ["Avg", average_case, "#facc15"], ["Worst", worst_case, "#f87171"]].map(([label, val, c]) => (
+          {[["Best", best_case,"#34d399"],["Avg", average_case,"#facc15"],["Worst", worst_case,"#f87171"]].map(([label,val,c]) => (
             <div key={label} className="text-center">
               <p className="text-[9px] text-gray-600 mb-1">{label}</p>
-              <p className="font-mono text-xs font-semibold" style={{ color: c }}>{val || "—"}</p>
+              <p className="font-mono text-xs font-semibold" style={{ color: c }}>{val||"—"}</p>
             </div>
           ))}
         </div>
       </div>
-
-      {/* Meta stats */}
       <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-4 py-3">
         <div className="flex justify-around">
-          <div className="text-center"><p className="text-[9px] text-gray-600 mb-1">Loops</p><p className="font-mono text-sm font-bold text-gray-300">{loops_detected ?? "—"}</p></div>
+          <div className="text-center"><p className="text-[9px] text-gray-600 mb-1">Loops</p><p className="font-mono text-sm font-bold text-gray-300">{loops_detected??"-"}</p></div>
           <div className="w-px bg-[#1e1e2e]"/>
-          <div className="text-center"><p className="text-[9px] text-gray-600 mb-1">Recursive</p><p className="font-mono text-sm font-bold text-gray-300">{recursive ? "Yes" : "No"}</p></div>
+          <div className="text-center"><p className="text-[9px] text-gray-600 mb-1">Recursive</p><p className="font-mono text-sm font-bold text-gray-300">{recursive?"Yes":"No"}</p></div>
           <div className="w-px bg-[#1e1e2e]"/>
           <div className="text-center"><p className="text-[9px] text-gray-600 mb-1">Score</p><p className="font-mono text-sm font-bold text-gray-300">{overall_score}/100</p></div>
         </div>
       </div>
-
-      {/* Bottleneck */}
       {bottleneck && (
         <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-4 py-3">
           <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-1.5">Bottleneck</p>
           <p className="text-xs text-amber-400 font-mono">{bottleneck}</p>
         </div>
       )}
-
-      {/* Suggestions */}
       {suggestions?.length > 0 && (
         <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-4 py-3">
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-2.5"><Icon.Lightbulb /><span>Suggestions</span></div>
+          <div className="flex items-center gap-1.5 text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-2.5"><Icon.Lightbulb/><span>Suggestions</span></div>
           <ul className="space-y-2">
             {suggestions.map((s, i) => (
               <li key={i} className="flex items-start gap-2 text-xs text-gray-400">
-                <span className="mt-0.5 w-4 h-4 rounded-full bg-purple-900/50 border border-purple-700/40 flex items-center justify-center text-purple-400 shrink-0 text-[9px] font-mono">{i + 1}</span>
+                <span className="mt-0.5 w-4 h-4 rounded-full bg-purple-900/50 border border-purple-700/40 flex items-center justify-center text-purple-400 shrink-0 text-[9px] font-mono">{i+1}</span>
                 {s}
               </li>
             ))}
@@ -403,93 +362,65 @@ function ResultPanel({ result, showChart = true }) {
 
 // ─── Compare Panel ─────────────────────────────────────────────────────────
 function ComparePanel({ resultA, resultB, labelA = "Version A", labelB = "Version B" }) {
-  const scoreA = resultA.overall_score;
-  const scoreB = resultB.overall_score;
+  const scoreA = resultA.overall_score, scoreB = resultB.overall_score;
   const diff   = Math.abs(scoreA - scoreB);
-
-  const rankA = getRank(resultA.time_complexity?.notation);
-  const rankB = getRank(resultB.time_complexity?.notation);
-
+  const rankA  = getRank(resultA.time_complexity?.notation);
+  const rankB  = getRank(resultB.time_complexity?.notation);
   let winner, winnerLabel, verdict;
-  if (scoreA > scoreB)       { winner = "A"; winnerLabel = labelA; verdict = `${labelA} wins by ${diff} points`; }
-  else if (scoreB > scoreA)  { winner = "B"; winnerLabel = labelB; verdict = `${labelB} wins by ${diff} points`; }
-  else                       { winner = null; winnerLabel = null; verdict = "It's a tie!"; }
-
+  if (scoreA > scoreB)      { winner = "A"; winnerLabel = labelA; verdict = `${labelA} wins by ${diff} points`; }
+  else if (scoreB > scoreA) { winner = "B"; winnerLabel = labelB; verdict = `${labelB} wins by ${diff} points`; }
+  else                      { winner = null; winnerLabel = null;  verdict = "It's a tie!"; }
   const ROWS = [
-    { label: "Time",  a: resultA.time_complexity?.notation,  b: resultB.time_complexity?.notation,  rankA, rankB, lowerWins: true },
-    { label: "Space", a: resultA.space_complexity?.notation, b: resultB.space_complexity?.notation, rankA: getRank(resultA.space_complexity?.notation), rankB: getRank(resultB.space_complexity?.notation), lowerWins: true },
-    { label: "Score", a: scoreA + "/100",                    b: scoreB + "/100",                    rankA: 100 - scoreA, rankB: 100 - scoreB, lowerWins: true },
-    { label: "Loops", a: String(resultA.loops_detected ?? "?"), b: String(resultB.loops_detected ?? "?"), rankA: resultA.loops_detected ?? 0, rankB: resultB.loops_detected ?? 0, lowerWins: true },
+    { label: "Time",  a: resultA.time_complexity?.notation,  b: resultB.time_complexity?.notation,  rankA, rankB },
+    { label: "Space", a: resultA.space_complexity?.notation, b: resultB.space_complexity?.notation, rankA: getRank(resultA.space_complexity?.notation), rankB: getRank(resultB.space_complexity?.notation) },
+    { label: "Score", a: scoreA+"/100",                      b: scoreB+"/100",                      rankA: 100-scoreA, rankB: 100-scoreB },
+    { label: "Loops", a: String(resultA.loops_detected??"?"),b: String(resultB.loops_detected??"?"),rankA: resultA.loops_detected??0, rankB: resultB.loops_detected??0 },
   ];
-
   return (
     <div className="space-y-5 animate-fade-in">
-
-      {/* Verdict banner */}
-      <div className={`rounded-xl px-5 py-4 border text-center ${
-        winner ? "bg-purple-900/20 border-purple-700/40" : "bg-[#111118] border-[#1e1e2e]"
-      }`}>
-        {winner && <div className="flex items-center justify-center gap-2 text-purple-300 mb-1"><Icon.Trophy /><span className="font-bold text-sm">{winnerLabel} is faster</span></div>}
-        <p className={`font-mono font-semibold ${winner ? "text-white text-lg" : "text-gray-300 text-base"}`}>{verdict}</p>
+      <div className={`rounded-xl px-5 py-4 border text-center ${winner?"bg-purple-900/20 border-purple-700/40":"bg-[#111118] border-[#1e1e2e]"}`}>
+        {winner && <div className="flex items-center justify-center gap-2 text-purple-300 mb-1"><Icon.Trophy/><span className="font-bold text-sm">{winnerLabel} is faster</span></div>}
+        <p className={`font-mono font-semibold ${winner?"text-white text-lg":"text-gray-300 text-base"}`}>{verdict}</p>
         {diff > 0 && <p className="text-xs text-gray-500 mt-1">Score difference: {diff} points</p>}
       </div>
-
-      {/* Big-O chart — both curves */}
       <div className="bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl p-4">
         <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono mb-3">Complexity Comparison</p>
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className="text-[10px] text-purple-400 font-mono mb-2">{labelA}</p>
-            <BigOChart notation={resultA.time_complexity?.notation} />
-          </div>
-          <div>
-            <p className="text-[10px] text-cyan-400 font-mono mb-2">{labelB}</p>
-            <BigOChart notation={resultB.time_complexity?.notation} />
-          </div>
+          <div><p className="text-[10px] text-purple-400 font-mono mb-2">{labelA}</p><BigOChart notation={resultA.time_complexity?.notation}/></div>
+          <div><p className="text-[10px] text-cyan-400 font-mono mb-2">{labelB}</p><BigOChart notation={resultB.time_complexity?.notation}/></div>
         </div>
       </div>
-
-      {/* Comparison table */}
       <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl overflow-hidden">
         <div className="grid grid-cols-3 text-[10px] text-gray-600 uppercase tracking-widest font-mono border-b border-[#1e1e2e]">
           <div className="px-4 py-2.5">Metric</div>
           <div className="px-4 py-2.5 text-purple-400">{labelA}</div>
           <div className="px-4 py-2.5 text-cyan-400">{labelB}</div>
         </div>
-        {ROWS.map(({ label, a, b, rankA: rA, rankB: rB }) => {
-          const aWins = rA < rB;
-          const bWins = rB < rA;
+        {ROWS.map(({label,a,b,rankA:rA,rankB:rB}) => {
+          const aWins = rA < rB, bWins = rB < rA;
           return (
             <div key={label} className="grid grid-cols-3 border-b border-[#1e1e2e] last:border-0">
               <div className="px-4 py-3 text-xs text-gray-500 font-mono">{label}</div>
-              <div className={`px-4 py-3 font-mono text-sm font-semibold ${aWins ? "text-green-400" : bWins ? "text-red-400/70" : "text-gray-300"}`}>
-                {a} {aWins && <span className="text-green-500 text-[10px]">✓</span>}
-              </div>
-              <div className={`px-4 py-3 font-mono text-sm font-semibold ${bWins ? "text-green-400" : aWins ? "text-red-400/70" : "text-gray-300"}`}>
-                {b} {bWins && <span className="text-green-500 text-[10px]">✓</span>}
-              </div>
+              <div className={`px-4 py-3 font-mono text-sm font-semibold ${aWins?"text-green-400":bWins?"text-red-400/70":"text-gray-300"}`}>{a} {aWins && <span className="text-green-500 text-[10px]">✓</span>}</div>
+              <div className={`px-4 py-3 font-mono text-sm font-semibold ${bWins?"text-green-400":aWins?"text-red-400/70":"text-gray-300"}`}>{b} {bWins && <span className="text-green-500 text-[10px]">✓</span>}</div>
             </div>
           );
         })}
       </div>
-
-      {/* Side-by-side suggestions */}
       {(resultA.suggestions?.length > 0 || resultB.suggestions?.length > 0) && (
         <div className="grid grid-cols-2 gap-3">
-          {[{ result: resultA, label: labelA, color: "text-purple-400" }, { result: resultB, label: labelB, color: "text-cyan-400" }].map(({ result, label, color }) => (
+          {[{result:resultA,label:labelA,color:"text-purple-400"},{result:resultB,label:labelB,color:"text-cyan-400"}].map(({result,label,color}) =>
             result.suggestions?.length > 0 && (
               <div key={label} className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-4 py-3">
                 <p className={`text-[10px] font-mono uppercase tracking-widest mb-2 ${color}`}>{label} — Tips</p>
                 <ul className="space-y-1.5">
-                  {result.suggestions.slice(0, 2).map((s, i) => (
-                    <li key={i} className="text-[11px] text-gray-400 flex items-start gap-1.5">
-                      <span className="text-purple-500 shrink-0 mt-0.5">›</span>{s}
-                    </li>
+                  {result.suggestions.slice(0,2).map((s,i) => (
+                    <li key={i} className="text-[11px] text-gray-400 flex items-start gap-1.5"><span className="text-purple-500 shrink-0 mt-0.5">›</span>{s}</li>
                   ))}
                 </ul>
               </div>
             )
-          ))}
+          )}
         </div>
       )}
     </div>
@@ -500,23 +431,21 @@ function ComparePanel({ resultA, resultB, labelA = "Version A", labelB = "Versio
 function CodeEditor({ code, onChange, language, onLanguageChange, label, color = "text-purple-400" }) {
   const [copied, setCopied] = useState(false);
   const currentLang = LANGUAGES.find((l) => l.value === language);
-
   const copyCode = async () => {
     if (!code.trim()) return;
     await navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
-
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <span className={`text-xs font-mono font-semibold ${color}`}>{label}</span>
-        <LanguageDropdown language={language} onChange={onLanguageChange} />
+        <LanguageDropdown language={language} onChange={onLanguageChange}/>
         {SAMPLES[language] && (
           <button onClick={() => onChange(SAMPLES[language]?.code || SAMPLES[language])}
             className="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-400 border border-[#1e1e2e] rounded-xl hover:border-purple-700 hover:text-purple-400 transition-all font-mono">
-            <Icon.Flask /> Demo
+            <Icon.Flask/> Demo
           </button>
         )}
       </div>
@@ -529,74 +458,250 @@ function CodeEditor({ code, onChange, language, onLanguageChange, label, color =
             <span className="ml-2 text-xs text-gray-600 font-mono">{currentLang?.label}.{currentLang?.ext}</span>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={copyCode} disabled={!code.trim()}
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white disabled:opacity-30 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
-              {copied ? <><Icon.Check /> Copied!</> : <><Icon.Copy /> Copy</>}
+            <button onClick={copyCode} disabled={!code.trim()} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white disabled:opacity-30 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
+              {copied ? <><Icon.Check/> Copied!</> : <><Icon.Copy/> Copy</>}
             </button>
-            <button onClick={() => onChange("")} disabled={!code.trim()}
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-400 disabled:opacity-30 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
-              <Icon.Trash /> Clear
+            <button onClick={() => onChange("")} disabled={!code.trim()} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-400 disabled:opacity-30 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
+              <Icon.Trash/> Clear
             </button>
           </div>
         </div>
-        <textarea
-          value={code}
-          onChange={(e) => onChange(e.target.value)}
+        <textarea value={code} onChange={(e) => onChange(e.target.value)}
           className="code-editor w-full bg-transparent p-4 text-[#e2e8f0] resize-none outline-none min-h-[240px] text-sm leading-relaxed"
           placeholder={`// Paste your ${currentLang?.label} code here…`}
-          spellCheck={false} autoComplete="off" autoCapitalize="off"
-        />
+          spellCheck={false} autoComplete="off" autoCapitalize="off"/>
       </div>
       <p className="text-[10px] text-gray-600 font-mono">{code.split("\n").length} lines · {code.length} chars</p>
     </div>
   );
 }
 
+// ─── History Panel ─────────────────────────────────────────────────────────
+function HistoryPanel({ history, onReload, onDelete, onClearAll }) {
+  const [expandedId, setExpandedId] = useState(null);
+
+  if (history.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 border border-dashed border-[#1e1e2e] rounded-xl text-center">
+        <div className="w-16 h-16 rounded-2xl bg-[#111118] border border-[#1e1e2e] flex items-center justify-center mb-4 text-gray-600">
+          <Icon.History/>
+        </div>
+        <p className="text-gray-500 text-sm mb-1">No analyses yet</p>
+        <p className="text-gray-700 text-xs">Run your first analysis — it will appear here automatically.</p>
+      </div>
+    );
+  }
+
+  // Build score trend across all entries (oldest → newest)
+  const scores  = [...history].reverse().map((e) => e.overall_score);
+  const avgScore = Math.round(scores.reduce((a,b) => a+b, 0) / scores.length);
+  const best     = Math.max(...scores);
+  const trending = scores.length >= 2 ? scores[scores.length-1] - scores[0] : 0;
+
+  // Group by date
+  const groups = {};
+  history.forEach((entry) => {
+    const d = new Date(entry.id);
+    const key = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(entry);
+  });
+
+  return (
+    <div className="space-y-5">
+
+      {/* ── Stats bar ── */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label: "Total",   value: history.length, color: "text-gray-300" },
+          { label: "Avg Score", value: avgScore,     color: avgScore >= 70 ? "text-green-400" : avgScore >= 45 ? "text-yellow-400" : "text-red-400" },
+          { label: "Best",    value: best,            color: "text-cyan-400" },
+          { label: "Trend",   value: trending > 0 ? `+${trending}` : String(trending), color: trending > 0 ? "text-green-400" : trending < 0 ? "text-red-400" : "text-gray-400" },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-3 py-3 text-center">
+            <p className={`font-mono font-bold text-lg ${color}`}>{value}</p>
+            <p className="text-[10px] text-gray-600 mt-0.5">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Score trend sparkline ── */}
+      {scores.length >= 2 && (
+        <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono mb-1">Score Progress</p>
+            <p className="text-xs text-gray-400">
+              {trending > 0
+                ? <span className="text-green-400 flex items-center gap-1"><Icon.TrendUp/> Improving +{trending} pts overall</span>
+                : trending < 0
+                ? <span className="text-red-400 flex items-center gap-1"><Icon.TrendDown/> Declining {trending} pts overall</span>
+                : <span className="text-gray-400">Stable</span>}
+            </p>
+          </div>
+          {/* Wider sparkline for the full history */}
+          {(() => {
+            const W=200, H=40, PAD=6;
+            const min=Math.min(...scores), max=Math.max(...scores), range=max-min||1;
+            const pts = scores.map((s,i) => {
+              const x = PAD + (i/(scores.length-1))*(W-PAD*2);
+              const y = H - PAD - ((s-min)/range)*(H-PAD*2);
+              return `${x},${y}`;
+            }).join(" ");
+            const last=scores[scores.length-1], first=scores[0];
+            const color = last>=first?"#34d399":"#f87171";
+            const lx = PAD + ((scores.length-1)/(scores.length-1))*(W-PAD*2);
+            const ly = H - PAD - ((last-min)/range)*(H-PAD*2);
+            return (
+              <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+                <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.5"/>
+                {/* Fill area */}
+                <polyline points={`${PAD},${H-PAD} ${pts} ${PAD+((scores.length-1)/(scores.length-1))*(W-PAD*2)},${H-PAD}`}
+                  fill={color} opacity="0.05" stroke="none"/>
+                <circle cx={lx} cy={ly} r="3" fill={color}/>
+              </svg>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ── Clear all ── */}
+      <div className="flex justify-end">
+        <button onClick={onClearAll}
+          className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-red-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-950/20 border border-transparent hover:border-red-900/30">
+          <Icon.Delete/> Clear all history
+        </button>
+      </div>
+
+      {/* ── Grouped entries ── */}
+      {Object.entries(groups).map(([date, entries]) => (
+        <div key={date} className="space-y-2">
+          <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono px-1">{date} · {entries.length} {entries.length === 1 ? "analysis" : "analyses"}</p>
+          {entries.map((entry) => {
+            const meta    = LANG_META[entry.language] || LANG_META.javascript;
+            const rStyle  = ratingStyle(entry.time_rating);
+            const isOpen  = expandedId === entry.id;
+            const time    = new Date(entry.id).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+            const score   = entry.overall_score;
+            const scoreColor = score >= 80 ? "#22d3ee" : score >= 60 ? "#34d399" : score >= 40 ? "#facc15" : score >= 20 ? "#fb923c" : "#f87171";
+
+            return (
+              <div key={entry.id} className="bg-[#111118] border border-[#1e1e2e] rounded-xl overflow-hidden hover:border-[#2e2e3e] transition-all">
+                {/* Card header — always visible */}
+                <div
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer"
+                  onClick={() => setExpandedId(isOpen ? null : entry.id)}
+                >
+                  {/* Lang badge */}
+                  <span className="w-8 h-7 rounded-lg flex items-center justify-center font-mono font-bold text-[10px] shrink-0" style={{ background: meta.bg, color: meta.text }}>{meta.icon}</span>
+
+                  {/* Code snippet */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-300 font-mono truncate">{entry.codeSnippet}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[10px] text-gray-600">{time}</span>
+                      <span className="text-[10px]" style={{ color: rStyle.color }}>{entry.time_notation}</span>
+                    </div>
+                  </div>
+
+                  {/* Score */}
+                  <div className="text-right shrink-0">
+                    <p className="font-mono font-bold text-base" style={{ color: scoreColor }}>{score}</p>
+                    <p className="text-[9px] text-gray-600">/ 100</p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 shrink-0 ml-1">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onReload(entry); }}
+                      className="p-1.5 rounded-lg text-gray-600 hover:text-purple-400 hover:bg-purple-900/20 transition-all"
+                      title="Reload this code">
+                      <Icon.Reload/>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDelete(entry.id); }}
+                      className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-900/20 transition-all"
+                      title="Delete">
+                      <Icon.Delete/>
+                    </button>
+                    <span className={`text-gray-600 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}><Icon.ChevronDown/></span>
+                  </div>
+                </div>
+
+                {/* Expanded: show full result */}
+                {isOpen && (
+                  <div className="border-t border-[#1e1e2e] px-4 py-4">
+                    {/* Code block */}
+                    <div className="bg-[#0a0a0f] rounded-xl p-3 mb-4 font-mono text-xs text-gray-400 overflow-x-auto max-h-40 whitespace-pre">
+                      {entry.code}
+                    </div>
+                    {entry.result && <ResultPanel result={entry.result} showChart={true}/>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────
 export default function Home() {
-  // Analyse mode state
-  const [code,     setCode]     = useState("");
-  const [language, setLanguage] = useState("javascript");
-  const [result,   setResult]   = useState(null);
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState(null);
-  const [valErr,   setValErr]   = useState(null);
-  const [copied,   setCopied]   = useState(false);
+  const [code,      setCode]      = useState("");
+  const [language,  setLanguage]  = useState("javascript");
+  const [result,    setResult]    = useState(null);
+  const [loading,   setLoading]   = useState(false);
+  const [error,     setError]     = useState(null);
+  const [valErr,    setValErr]    = useState(null);
+  const [copied,    setCopied]    = useState(false);
 
-  // Compare mode state
-  const [codeA,     setCodeA]     = useState("");
-  const [codeB,     setCodeB]     = useState("");
-  const [langA,     setLangA]     = useState("javascript");
-  const [langB,     setLangB]     = useState("javascript");
-  const [resultA,   setResultA]   = useState(null);
-  const [resultB,   setResultB]   = useState(null);
-  const [comparing, setComparing] = useState(false);
-  const [compareErr,setCompareErr]= useState(null);
+  const [codeA,      setCodeA]      = useState("");
+  const [codeB,      setCodeB]      = useState("");
+  const [langA,      setLangA]      = useState("javascript");
+  const [langB,      setLangB]      = useState("javascript");
+  const [resultA,    setResultA]    = useState(null);
+  const [resultB,    setResultB]    = useState(null);
+  const [comparing,  setComparing]  = useState(false);
+  const [compareErr, setCompareErr] = useState(null);
 
-  // Mode: "analyse" | "compare"
-  const [mode, setMode] = useState("analyse");
+  const [mode,    setMode]    = useState("analyse");
+  const [history, setHistory] = useState([]);
 
   const currentLang = LANGUAGES.find((l) => l.value === language);
 
+  // Load history from localStorage on mount
+  useEffect(() => { setHistory(loadHistory()); }, []);
+
   const handleLanguageChange = useCallback((lang) => {
-    setLanguage(lang);
-    setResult(null);
-    setValErr(null);
+    setLanguage(lang); setResult(null); setValErr(null);
   }, []);
 
-  // ── Single analyse ─────────────────────────────────────────────────────
+  // ── Single analyse ───────────────────────────────────────────────────────
   const analyse = async () => {
     const err = validateCode(code);
     if (err) { setValErr(err); return; }
     setLoading(true); setError(null); setValErr(null); setResult(null);
     try {
-      const res  = await fetch("/api/analyse", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, language }),
-      });
+      const res  = await fetch("/api/analyse", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ code, language }) });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Analysis failed");
+
       setResult(data.result);
+
+      // ── Save to history ──
+      const snippet = code.trim().split("\n")[0].slice(0, 60);
+      const entry = {
+        code,
+        language,
+        codeSnippet:   snippet,
+        overall_score: data.result.overall_score,
+        time_notation: data.result.time_complexity?.notation,
+        time_rating:   data.result.time_complexity?.rating,
+        result:        data.result,
+      };
+      const updated = addToHistory(entry);
+      setHistory(updated);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -604,22 +709,20 @@ export default function Home() {
     }
   };
 
-  // ── Compare analyse ────────────────────────────────────────────────────
+  // ── Compare ──────────────────────────────────────────────────────────────
   const compare = async () => {
-    const errA = validateCode(codeA);
-    const errB = validateCode(codeB);
+    const errA = validateCode(codeA), errB = validateCode(codeB);
     if (errA) { setCompareErr("Version A: " + errA); return; }
     if (errB) { setCompareErr("Version B: " + errB); return; }
-
     setComparing(true); setCompareErr(null); setResultA(null); setResultB(null);
     try {
       const [resA, resB] = await Promise.all([
-        fetch("/api/analyse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: codeA, language: langA }) }),
-        fetch("/api/analyse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: codeB, language: langB }) }),
+        fetch("/api/analyse",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:codeA,language:langA})}),
+        fetch("/api/analyse",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:codeB,language:langB})}),
       ]);
       const [dataA, dataB] = await Promise.all([resA.json(), resB.json()]);
-      if (!resA.ok || !dataA.success) throw new Error("Version A: " + (dataA.error || "failed"));
-      if (!resB.ok || !dataB.success) throw new Error("Version B: " + (dataB.error || "failed"));
+      if (!resA.ok||!dataA.success) throw new Error("Version A: "+(dataA.error||"failed"));
+      if (!resB.ok||!dataB.success) throw new Error("Version B: "+(dataB.error||"failed"));
       setResultA(dataA.result);
       setResultB(dataB.result);
     } catch (e) {
@@ -627,6 +730,25 @@ export default function Home() {
     } finally {
       setComparing(false);
     }
+  };
+
+  // ── History handlers ─────────────────────────────────────────────────────
+  const handleReload = (entry) => {
+    setCode(entry.code);
+    setLanguage(entry.language);
+    setResult(entry.result || null);
+    setMode("analyse");
+  };
+
+  const handleDelete = (id) => {
+    const updated = history.filter((e) => e.id !== id);
+    saveHistory(updated);
+    setHistory(updated);
+  };
+
+  const handleClearAll = () => {
+    saveHistory([]);
+    setHistory([]);
   };
 
   const loadDemo = () => {
@@ -648,30 +770,34 @@ export default function Home() {
         {/* ── Header ── */}
         <header className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 bg-purple-900/20 border border-purple-800/30 rounded-full px-4 py-1.5 text-xs text-purple-400 font-mono mb-4">
-            <Icon.Zap /> ComplexityIQ — Algorithm Analyser
+            <Icon.Zap/> ComplexityIQ — Algorithm Analyser
           </div>
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent">
             Analyse Your Algorithm
           </h1>
           <p className="text-gray-500 text-sm">
-            Get instant Big-O complexity analysis with visual growth charts and side-by-side code comparison.
+            Instant Big-O analysis · Visual growth charts · Side-by-side comparison · History tracking
           </p>
         </header>
 
-        {/* ── Mode Toggle ── */}
-        <div className="flex items-center gap-1 bg-[#111118] border border-[#1e1e2e] rounded-2xl p-1 mb-8 max-w-sm mx-auto">
+        {/* ── Mode Toggle (3 tabs) ── */}
+        <div className="flex items-center gap-1 bg-[#111118] border border-[#1e1e2e] rounded-2xl p-1 mb-8 max-w-md mx-auto">
           {[
-            { id: "analyse", label: "Analyse", icon: <Icon.BarChart /> },
-            { id: "compare", label: "Compare",  icon: <Icon.GitCompare /> },
-          ].map(({ id, label, icon }) => (
+            { id: "analyse", label: "Analyse", icon: <Icon.BarChart/>   },
+            { id: "compare", label: "Compare", icon: <Icon.GitCompare/> },
+            { id: "history", label: "History", icon: <Icon.History/>,
+              badge: history.length > 0 ? history.length : null },
+          ].map(({ id, label, icon, badge }) => (
             <button key={id} onClick={() => setMode(id)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                mode === id
-                  ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
-                  : "text-gray-500 hover:text-gray-300"
-              }`}
-            >
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all relative ${
+                mode === id ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40" : "text-gray-500 hover:text-gray-300"
+              }`}>
               {icon} {label}
+              {badge && (
+                <span className="absolute top-1.5 right-2 min-w-[16px] h-4 rounded-full bg-purple-500 text-white text-[9px] font-mono flex items-center justify-center px-1">
+                  {badge > 99 ? "99+" : badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -679,21 +805,16 @@ export default function Home() {
         {/* ── ANALYSE MODE ── */}
         {mode === "analyse" && (
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* Left: Editor */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3 flex-wrap">
-                <LanguageDropdown language={language} onChange={handleLanguageChange} />
+                <LanguageDropdown language={language} onChange={handleLanguageChange}/>
                 {SAMPLES[language] && (
-                  <button onClick={loadDemo}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-400 border border-[#1e1e2e] rounded-xl hover:border-purple-700 hover:text-purple-400 transition-all font-mono">
-                    <Icon.Flask /> Load demo
+                  <button onClick={loadDemo} className="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-400 border border-[#1e1e2e] rounded-xl hover:border-purple-700 hover:text-purple-400 transition-all font-mono">
+                    <Icon.Flask/> Load demo
                   </button>
                 )}
-                <span className="ml-auto text-[10px] text-gray-600 font-mono">
-                  {code.split("\n").length} lines · {code.length} chars
-                </span>
+                <span className="ml-auto text-[10px] text-gray-600 font-mono">{code.split("\n").length} lines · {code.length} chars</span>
               </div>
-
               <div className="flex-1 bg-[#111118] border border-[#1e1e2e] rounded-xl overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#1e1e2e]">
                   <div className="flex items-center gap-2">
@@ -703,74 +824,59 @@ export default function Home() {
                     <span className="ml-2 text-xs text-gray-600 font-mono">{currentLang?.label}.{currentLang?.ext}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={copyCode} disabled={!code.trim()}
-                      className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white disabled:opacity-30 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
-                      {copied ? <><Icon.Check /> Copied!</> : <><Icon.Copy /> Copy</>}
+                    <button onClick={copyCode} disabled={!code.trim()} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white disabled:opacity-30 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
+                      {copied ? <><Icon.Check/> Copied!</> : <><Icon.Copy/> Copy</>}
                     </button>
-                    <button onClick={() => { setCode(""); setResult(null); setError(null); setValErr(null); }} disabled={!code.trim()}
-                      className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-400 disabled:opacity-30 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
-                      <Icon.Trash /> Clear
+                    <button onClick={() => {setCode("");setResult(null);setError(null);setValErr(null);}} disabled={!code.trim()} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-400 disabled:opacity-30 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
+                      <Icon.Trash/> Clear
                     </button>
                   </div>
                 </div>
-                <textarea
-                  value={code}
-                  onChange={(e) => { setCode(e.target.value); setResult(null); setValErr(null); }}
+                <textarea value={code} onChange={(e) => {setCode(e.target.value);setResult(null);setValErr(null);}}
                   className="code-editor w-full bg-transparent p-4 text-[#e2e8f0] resize-none outline-none min-h-[320px] text-sm leading-relaxed"
                   placeholder={`// Paste your ${currentLang?.label} code here…`}
-                  spellCheck={false} autoComplete="off" autoCapitalize="off"
-                />
+                  spellCheck={false} autoComplete="off" autoCapitalize="off"/>
               </div>
-
               {valErr && (
-                <div className="flex items-center gap-2 bg-red-950/40 border border-red-800/50 rounded-xl px-4 py-3 text-xs text-red-400 animate-fade-in">
-                  <Icon.AlertCircle /> {valErr}
+                <div className="flex items-center gap-2 bg-red-950/40 border border-red-800/50 rounded-xl px-4 py-3 text-xs text-red-400">
+                  <Icon.AlertCircle/> {valErr}
                 </div>
               )}
-
               <button onClick={analyse} disabled={loading}
-                className={`w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
-                  loading
-                    ? "bg-purple-900/40 text-purple-400 cursor-not-allowed border border-purple-800/40"
-                    : "bg-purple-600 hover:bg-purple-500 text-white active:scale-[0.98]"
-                }`}
-              >
+                className={`w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${loading?"bg-purple-900/40 text-purple-400 cursor-not-allowed border border-purple-800/40":"bg-purple-600 hover:bg-purple-500 text-white active:scale-[0.98]"}`}>
                 {loading
                   ? <><svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Analysing…</>
-                  : <><Icon.Zap /> Analyse Complexity</>}
+                  : <><Icon.Zap/> Analyse Complexity</>}
               </button>
             </div>
-
-            {/* Right: Results */}
             <div className="flex flex-col">
-              {loading && <AnalysingLoader />}
+              {loading && <AnalysingLoader/>}
               {!loading && error && (
                 <div className="flex items-start gap-2 bg-red-950/30 border border-red-800/50 rounded-xl p-4 text-sm text-red-400">
-                  <Icon.AlertCircle />
+                  <Icon.AlertCircle/>
                   <div><p className="font-semibold mb-0.5">Analysis failed</p><p className="text-xs opacity-80">{error}</p></div>
                 </div>
               )}
               {!loading && !result && !error && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center py-16 border border-dashed border-[#1e1e2e] rounded-xl">
-                  <div className="w-16 h-16 rounded-2xl bg-[#111118] border border-[#1e1e2e] flex items-center justify-center mb-4 text-gray-600"><Icon.Code /></div>
+                  <div className="w-16 h-16 rounded-2xl bg-[#111118] border border-[#1e1e2e] flex items-center justify-center mb-4 text-gray-600"><Icon.Code/></div>
                   <p className="text-gray-500 text-sm mb-1">No analysis yet</p>
                   <p className="text-gray-700 text-xs mb-8">Paste code and click <span className="text-purple-400">Analyse Complexity</span></p>
-                  {/* Quick reference */}
                   <div className="w-full max-w-xs">
                     <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-3">Complexity Reference</p>
                     <div className="space-y-2 text-left">
                       {[
-                        { n: "O(1)",       label: "Constant",      w: "5%",   c: "bg-cyan-400"   },
-                        { n: "O(log n)",   label: "Logarithmic",   w: "15%",  c: "bg-green-400"  },
-                        { n: "O(n)",       label: "Linear",        w: "30%",  c: "bg-lime-400"   },
-                        { n: "O(n log n)", label: "Linearithmic",  w: "45%",  c: "bg-yellow-400" },
-                        { n: "O(n²)",      label: "Quadratic",     w: "65%",  c: "bg-orange-400" },
-                        { n: "O(2ⁿ)",      label: "Exponential",   w: "85%",  c: "bg-red-400"    },
-                        { n: "O(n!)",      label: "Factorial",     w: "100%", c: "bg-red-700"    },
-                      ].map(({ n, label, w, c }) => (
+                        {n:"O(1)",      label:"Constant",     w:"5%",   c:"bg-cyan-400"  },
+                        {n:"O(log n)",  label:"Logarithmic",  w:"15%",  c:"bg-green-400" },
+                        {n:"O(n)",      label:"Linear",       w:"30%",  c:"bg-lime-400"  },
+                        {n:"O(n log n)",label:"Linearithmic", w:"45%",  c:"bg-yellow-400"},
+                        {n:"O(n²)",     label:"Quadratic",    w:"65%",  c:"bg-orange-400"},
+                        {n:"O(2ⁿ)",     label:"Exponential",  w:"85%",  c:"bg-red-400"   },
+                        {n:"O(n!)",     label:"Factorial",    w:"100%", c:"bg-red-700"   },
+                      ].map(({n,label,w,c}) => (
                         <div key={n} className="flex items-center gap-3">
                           <code className="text-[10px] font-mono text-gray-400 w-20 shrink-0">{n}</code>
-                          <div className="flex-1 bg-[#0a0a0f] rounded h-1.5"><div className={`h-full rounded ${c}`} style={{ width: w }} /></div>
+                          <div className="flex-1 bg-[#0a0a0f] rounded h-1.5"><div className={`h-full rounded ${c}`} style={{width:w}}/></div>
                           <span className="text-[10px] text-gray-600 w-20 shrink-0">{label}</span>
                         </div>
                       ))}
@@ -778,7 +884,7 @@ export default function Home() {
                   </div>
                 </div>
               )}
-              {result && !loading && <ResultPanel result={result} />}
+              {result && !loading && <ResultPanel result={result}/>}
             </div>
           </div>
         )}
@@ -787,39 +893,37 @@ export default function Home() {
         {mode === "compare" && (
           <div className="space-y-6">
             <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-4 py-3 text-xs text-gray-500 text-center">
-              Paste two versions of your code below — ComplexityIQ will analyse both simultaneously and declare a winner.
+              Paste two versions of your code — ComplexityIQ analyses both simultaneously and declares a winner.
             </div>
-
-            {/* Two editors */}
             <div className="grid lg:grid-cols-2 gap-6">
-              <CodeEditor code={codeA} onChange={setCodeA} language={langA} onLanguageChange={setLangA} label="Version A" color="text-purple-400" />
-              <CodeEditor code={codeB} onChange={setCodeB} language={langB} onLanguageChange={setLangB} label="Version B" color="text-cyan-400" />
+              <CodeEditor code={codeA} onChange={setCodeA} language={langA} onLanguageChange={setLangA} label="Version A" color="text-purple-400"/>
+              <CodeEditor code={codeB} onChange={setCodeB} language={langB} onLanguageChange={setLangB} label="Version B" color="text-cyan-400"/>
             </div>
-
             {compareErr && (
               <div className="flex items-center gap-2 bg-red-950/40 border border-red-800/50 rounded-xl px-4 py-3 text-xs text-red-400">
-                <Icon.AlertCircle /> {compareErr}
+                <Icon.AlertCircle/> {compareErr}
               </div>
             )}
-
-            {/* Compare button */}
             <button onClick={compare} disabled={comparing}
-              className={`w-full py-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
-                comparing
-                  ? "bg-purple-900/40 text-purple-400 cursor-not-allowed border border-purple-800/40"
-                  : "bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white active:scale-[0.98]"
-              }`}
-            >
+              className={`w-full py-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${comparing?"bg-purple-900/40 text-purple-400 cursor-not-allowed border border-purple-800/40":"bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white active:scale-[0.98]"}`}>
               {comparing
                 ? <><svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Comparing both versions…</>
-                : <><Icon.GitCompare /> Compare Both Versions</>}
+                : <><Icon.GitCompare/> Compare Both Versions</>}
             </button>
-
-            {/* Results */}
             {resultA && resultB && !comparing && (
-              <ComparePanel resultA={resultA} resultB={resultB} labelA="Version A" labelB="Version B" />
+              <ComparePanel resultA={resultA} resultB={resultB} labelA="Version A" labelB="Version B"/>
             )}
           </div>
+        )}
+
+        {/* ── HISTORY MODE ── */}
+        {mode === "history" && (
+          <HistoryPanel
+            history={history}
+            onReload={handleReload}
+            onDelete={handleDelete}
+            onClearAll={handleClearAll}
+          />
         )}
 
         {/* ── Footer ── */}
