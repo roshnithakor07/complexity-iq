@@ -58,6 +58,8 @@ const Icon = {
   Reload:      ()=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>,
   Delete:      ()=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>,
   Star:        ()=><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" className="w-3 h-3"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+  Wand:        ()=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5"/></svg>,
+  Spin:        ()=><svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
 };
 
 const LANG_META = {
@@ -222,7 +224,7 @@ function ScoreRing({ score, size=88 }) {
 }
 
 // ─── Result Panel ──────────────────────────────────────────────────────────
-function ResultPanel({ result, showChart=true }) {
+function ResultPanel({ result, code="", language="javascript", showChart=true, showRefactor=false }) {
   const { time_complexity:tc, space_complexity:sc, overall_score,
           loops_detected, recursive, best_case, worst_case, average_case,
           bottleneck, suggestions } = result;
@@ -308,6 +310,131 @@ function ResultPanel({ result, showChart=true }) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {showRefactor && <RefactorPanel code={code} language={language} result={result}/>}
+    </div>
+  );
+}
+
+// ─── Refactor Panel ────────────────────────────────────────────────────────
+function RefactorPanel({ code, language, result }) {
+  const [busy,   setBusy]   = useState(false);
+  const [data,   setData]   = useState(null);
+  const [err,    setErr]    = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  // Only show for fair / poor / critical
+  const canRefactor = ["fair","poor","critical"].includes(result?.time_complexity?.rating);
+  if (!canRefactor) return null;
+
+  const run = async () => {
+    setBusy(true); setErr(null); setData(null);
+    try {
+      const res  = await fetch("/api/refactor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          language,
+          current_time:  result.time_complexity?.notation,
+          current_score: result.overall_score,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Refactor failed");
+      setData(json.result);
+    } catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  };
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(data.refactored_code);
+    setCopied(true); setTimeout(()=>setCopied(false), 1500);
+  };
+
+  return (
+    <div className="space-y-4 pt-1">
+      {/* CTA button — only before refactor runs */}
+      {!data && (
+        <button onClick={run} disabled={busy}
+          className={`w-full py-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 border transition-all ${
+            busy
+              ? "bg-emerald-900/15 text-emerald-600 border-emerald-800/30 cursor-not-allowed"
+              : "bg-emerald-900/15 border-emerald-700/30 text-emerald-400 hover:bg-emerald-900/30 hover:border-emerald-600/50 active:scale-[0.99]"
+          }`}>
+          {busy
+            ? <><Icon.Spin/>Generating optimised code…</>
+            : <><Icon.Wand/>Auto-Refactor — Optimise my {result.time_complexity?.notation} code</>}
+        </button>
+      )}
+
+      {err && (
+        <div className="flex items-center gap-2 bg-red-950/30 border border-red-800/40 rounded-xl px-4 py-3 text-xs text-red-400">
+          <Icon.AlertCircle/>{err}
+        </div>
+      )}
+
+      {data && (
+        <div className="space-y-4">
+          {/* Before / After banner */}
+          <div className="bg-emerald-950/20 border border-emerald-800/30 rounded-xl px-5 py-5">
+            <div className="flex items-center gap-2 text-emerald-400 font-semibold mb-2">
+              <Icon.Wand/><span className="text-sm">Optimisation Complete</span>
+            </div>
+            <p className="text-sm text-gray-400 leading-relaxed mb-5">{data.improvement_summary}</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-[#0a0a0f] rounded-xl p-4 text-center border border-[#1e1e2e]">
+                <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-2">Before</p>
+                <p className="font-mono font-bold text-xl" style={{color:scoreColor(result.overall_score)}}>{result.time_complexity?.notation}</p>
+                <p className="text-xs text-gray-600 mt-1">{result.overall_score}/100</p>
+              </div>
+              <div className="bg-[#0a0a0f] rounded-xl p-4 text-center border border-emerald-800/30">
+                <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-2">After</p>
+                <p className="font-mono font-bold text-xl" style={{color:scoreColor(data.score_after)}}>{data.new_time_complexity}</p>
+                <p className="text-xs text-emerald-500 mt-1">
+                  {data.score_after}/100
+                  {data.score_after > result.overall_score && <span className="ml-1">(+{data.score_after - result.overall_score})</span>}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* What changed */}
+          {data.changes?.length > 0 && (
+            <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-5 py-4">
+              <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-3">What Changed</p>
+              <ul className="space-y-2.5">
+                {data.changes.map((c,i) => (
+                  <li key={i} className="flex items-start gap-3 text-sm text-gray-400">
+                    <span className="text-emerald-500 font-bold shrink-0 mt-0.5">✓</span>
+                    <span className="leading-relaxed">{c}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Optimised code */}
+          <div className="bg-[#0d0d14] border border-emerald-800/25 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[#1e1e2e]">
+              <span className="text-xs text-emerald-600 font-mono">
+                optimised.{language==="python"?"py":language==="typescript"?"ts":"js"}
+              </span>
+              <div className="flex items-center gap-2">
+                <button onClick={copy}
+                  className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-emerald-400 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
+                  {copied ? <><Icon.Check/>Copied!</> : <><Icon.Copy/>Copy</>}
+                </button>
+                <button onClick={run} disabled={busy}
+                  className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-emerald-400 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e] disabled:opacity-40">
+                  <Icon.Reload/>Regenerate
+                </button>
+              </div>
+            </div>
+            <pre className="px-5 py-5 text-sm text-[#e2e8f0] font-mono overflow-x-auto max-h-80 whitespace-pre-wrap leading-relaxed">{data.refactored_code}</pre>
+          </div>
         </div>
       )}
     </div>
@@ -719,7 +846,7 @@ export default function Home() {
                   </div>
                 </div>
               )}
-              {result&&!loading&&<ResultPanel result={result}/>}
+              {result&&!loading&&<ResultPanel result={result} code={code} language={language} showRefactor/>}
             </div>
           </div>
         )}
