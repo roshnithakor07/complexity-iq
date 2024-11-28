@@ -82,7 +82,70 @@ const RATING = {
 function ratingStyle(r) { return RATING[r] || RATING.fair; }
 const scoreColor = (s) => s>=80?"#22d3ee":s>=60?"#34d399":s>=40?"#facc15":s>=20?"#fb923c":"#f87171";
 
-// ─── Language Dropdown ─────────────────────────────────────────────────────
+// ─── Language Auto-Detector ────────────────────────────────────────────────
+function detectLanguage(code) {
+  if (!code || code.trim().length < 10) return null;
+  const c = code;
+  const scores = {
+    java:       0,
+    python:     0,
+    typescript: 0,
+    javascript: 0,
+    cpp:        0,
+    go:         0,
+    rust:       0,
+  };
+  // Java signals
+  if (/public\s+(static\s+)?(void|int|String|boolean|long|double|float|char)/.test(c)) scores.java += 4;
+  if (/System\.out\.(print|println)/.test(c)) scores.java += 4;
+  if (/import\s+java\./.test(c)) scores.java += 5;
+  if (/new\s+(ArrayList|HashMap|HashSet|LinkedList|Stack|Queue)</.test(c)) scores.java += 4;
+  if (/int\[\]|String\[\]|boolean\[\]/.test(c)) scores.java += 3;
+  if (/@Override|@Param|@NotNull/.test(c)) scores.java += 3;
+  if (/\bthrows\s+\w+Exception/.test(c)) scores.java += 3;
+  // Python signals
+  if (/^\s*def\s+\w+\s*\(/m.test(c)) scores.python += 4;
+  if (/^\s*import\s+\w+|^\s*from\s+\w+\s+import/m.test(c)) scores.python += 2;
+  if (/print\s*\(/.test(c)) scores.python += 2;
+  if (/\bself\b/.test(c)) scores.python += 4;
+  if (/:\s*$|elif\s|__init__|__str__/.test(c)) scores.python += 3;
+  if (/\bNone\b|\bTrue\b|\bFalse\b/.test(c)) scores.python += 2;
+  if (/->|f"/.test(c)) scores.python += 2;
+  // TypeScript signals
+  if (/:\s*(string|number|boolean|void|any|never|unknown)\b/.test(c)) scores.typescript += 4;
+  if (/interface\s+\w+|type\s+\w+\s*=/.test(c)) scores.typescript += 4;
+  if (/<T>|Array<\w+>|Promise</.test(c)) scores.typescript += 3;
+  if (/as\s+\w+\s*[;,)]/.test(c)) scores.typescript += 2;
+  // C++ signals
+  if (/#include\s*[<"]/.test(c)) scores.cpp += 5;
+  if (/std::|cout\s*<<|cin\s*>>/.test(c)) scores.cpp += 4;
+  if (/vector<|unordered_map<|pair</.test(c)) scores.cpp += 4;
+  if (/int\s+main\s*\(/.test(c)) scores.cpp += 3;
+  if (/nullptr|->/.test(c)) scores.cpp += 2;
+  // Go signals
+  if (/^package\s+\w+/m.test(c)) scores.go += 5;
+  if (/^func\s+\w+/m.test(c)) scores.go += 4;
+  if (/fmt\.(Print|Println|Sprintf)/.test(c)) scores.go += 4;
+  if (/:=/.test(c)) scores.go += 3;
+  if (/\[\]int|\[\]string|make\(/.test(c)) scores.go += 3;
+  // Rust signals
+  if (/^fn\s+\w+/m.test(c)) scores.rust += 4;
+  if (/println!\s*\(|eprintln!\s*\(/.test(c)) scores.rust += 4;
+  if (/let\s+mut\s+\w+/.test(c)) scores.rust += 4;
+  if (/impl\s+\w+|use\s+std::/.test(c)) scores.rust += 3;
+  if (/&str\b|String::from|Vec</.test(c)) scores.rust += 3;
+  // JavaScript signals (lowest priority — many patterns overlap)
+  if (/console\.(log|error|warn)/.test(c)) scores.javascript += 3;
+  if (/=>\s*{|=>\s*\(/.test(c)) scores.javascript += 2;
+  if (/const\s+\w+\s*=|let\s+\w+\s*=|var\s+\w+\s*=/.test(c)) scores.javascript += 1;
+  if (/require\s*\(|module\.exports/.test(c)) scores.javascript += 3;
+
+  // TypeScript beats JS if it has type annotations
+  if (scores.typescript > 0) scores.javascript = Math.max(0, scores.javascript - 2);
+
+  const best = Object.entries(scores).sort((a,b)=>b[1]-a[1])[0];
+  return best[1] >= 3 ? best[0] : null;
+}
 function LanguageDropdown({ language, onChange }) {
   const [open, setOpen] = useState(false);
   const ref  = useRef(null);
@@ -658,14 +721,25 @@ export default function Home() {
   const [comparing,setComparing]   = useState(false);
   const [compareErr,setCompareErr] = useState(null);
 
-  const [mode,setMode]     = useState("analyse");
-  const [history,setHistory] = useState([]);
+  const [mode,setMode]         = useState("analyse");
+  const [history,setHistory]   = useState([]);
+  const [detectedLang,setDetectedLang] = useState(null); // auto-detected language
 
   const currentLang=LANGUAGES.find(l=>l.value===language);
 
   useEffect(()=>{setHistory(loadHistory());},[]);
 
-  const handleLanguageChange=useCallback(lang=>{setLanguage(lang);setResult(null);setValErr(null);},[]);
+  // Auto-detect language whenever code changes (debounced 500ms)
+  useEffect(()=>{
+    if (!code.trim()) { setDetectedLang(null); return; }
+    const t = setTimeout(()=>{
+      const detected = detectLanguage(code);
+      setDetectedLang(detected);
+    }, 500);
+    return ()=>clearTimeout(t);
+  },[code]);
+
+  const handleLanguageChange=useCallback(lang=>{setLanguage(lang);setResult(null);setValErr(null);setDetectedLang(null);},[]);
 
   const analyse=async()=>{
     const err=validateCode(code); if(err){setValErr(err);return;}
@@ -778,6 +852,31 @@ export default function Home() {
                     placeholder={`// Paste your ${currentLang?.label} code here…`}
                     spellCheck={false} autoComplete="off" autoCapitalize="off"/>
                 </div>
+
+                {/* ── Language mismatch banner ── */}
+                {detectedLang && detectedLang !== language && (() => {
+                  const meta = LANG_META[detectedLang] || LANG_META.javascript;
+                  const detectedLabel = LANGUAGES.find(l=>l.value===detectedLang)?.label || detectedLang;
+                  return (
+                    <div className="flex items-center justify-between bg-amber-950/30 border border-amber-700/40 rounded-xl px-4 py-2.5">
+                      <div className="flex items-center gap-2 text-xs text-amber-400">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <span>Looks like <span className="font-semibold" style={{color:meta.bg==="f7df1e"?"#a89000":meta.bg}}>{detectedLabel}</span> code — but <span className="font-semibold text-white">{currentLang?.label}</span> is selected</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        <button
+                          onClick={()=>{setLanguage(detectedLang);setResult(null);setValErr(null);}}
+                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-all"
+                          style={{background:meta.bg,color:meta.text}}>
+                          Switch to {detectedLabel}
+                        </button>
+                        <button onClick={()=>setDetectedLang(language)} className="text-xs text-gray-600 hover:text-gray-400 px-2 py-1.5 rounded-lg hover:bg-[#1e1e2e] transition-all">
+                          Ignore
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
                 {valErr&&(
                   <div className="flex items-center gap-2 bg-red-950/40 border border-red-800/50 rounded-xl px-4 py-3 text-xs text-red-400">
                     <Icon.AlertCircle/>{valErr}
