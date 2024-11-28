@@ -534,9 +534,9 @@ function HistoryPanel({ history, onReload, onDelete, onClearAll }) {
       <p className="text-gray-700 text-xs">Run your first analysis — it will appear here automatically.</p>
     </div>
   );
-  const scores=[...history].reverse().map(e=>e.overall_score);
-  const avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
-  const best=Math.max(...scores);
+  const scores=[...history].reverse().map(e=>Number(e.overall_score)).filter(s=>!isNaN(s)&&s>0);
+  const avg=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):0;
+  const best=scores.length?Math.max(...scores):0;
   const trending=scores.length>=2?scores[scores.length-1]-scores[0]:0;
   const groups={};
   history.forEach(e=>{

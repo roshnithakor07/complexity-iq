@@ -9,7 +9,7 @@ Return ONLY a valid JSON object. No text before or after. No markdown. No code f
 
 The JSON must have EXACTLY these fields:
 {
-  "refactored_code": "function example(arr) {\n  const map = new Map();\n  for (const x of arr) map.set(x, true);\n  return map;\n}",
+  "refactored_code": "// optimised code here as a string with \\n for newlines",
   "new_time_complexity": "O(n)",
   "new_space_complexity": "O(n)",
   "improvement_summary": "Replaced O(n^2) nested loop with O(n) HashMap lookup",
@@ -22,11 +22,21 @@ The JSON must have EXACTLY these fields:
   "can_improve": true
 }
 
-RULES:
-- refactored_code must be a complete working function as a JSON string (escape newlines as \\n)
-- Keep same function name and language
+CRITICAL LANGUAGE RULES — read carefully:
+- You MUST write refactored_code in the EXACT SAME programming language as the input code.
+- If input is Java → output must be valid Java (use HashMap, ArrayList, int[], etc.)
+- If input is Python → output must be valid Python (use dict, list, etc.)
+- If input is C++ → output must be valid C++ (use unordered_map, vector, etc.)
+- If input is Go → output must be valid Go
+- If input is Rust → output must be valid Rust
+- NEVER switch to JavaScript or any other language. The output language must match the input language exactly.
+- Keep the same function/method name and signature style as the original.
+- Use idiomatic patterns for the target language (e.g. Java: HashMap not Map literal, Python: dict not object).
+
+OTHER RULES:
+- refactored_code must be a complete working function/method as a JSON string (escape newlines as \\n)
 - If code is already O(1) or O(log n), set can_improve to false and return original code unchanged
-- changes: 2-4 specific bullet points
+- changes: 2-4 specific bullet points describing what changed
 - Return ONLY the raw JSON. Nothing else.`;
 
 function extractJSON(raw) {
@@ -65,7 +75,7 @@ export async function POST(request) {
         { role: "system", content: SYSTEM_PROMPT },
         {
           role: "user",
-          content: `Optimise this ${language} code.\nCurrent time complexity: ${current_time}\nCurrent score: ${current_score}/100\n\nCode:\n${code}\n\nReturn ONLY JSON.`,
+          content: `Optimise this ${language} code. Output language MUST be ${language} — do NOT switch to any other language.\nCurrent time complexity: ${current_time}\nCurrent score: ${current_score}/100\n\nCode:\n${code}\n\nReturn ONLY JSON with refactored_code written in ${language}.`,
         },
       ],
     });
