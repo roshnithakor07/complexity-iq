@@ -379,7 +379,8 @@ function RefactorPanel({ code, language, result }) {
     setCopied(true); setTimeout(()=>setCopied(false), 1500);
   };
 
-  const ext = language==="python"?"py":language==="typescript"?"ts":"js";
+  const EXT = {javascript:"js",typescript:"ts",python:"py",java:"java",cpp:"cpp",go:"go",rust:"rs"};
+  const ext = EXT[language] || "txt";
 
   return (
     <div className="space-y-3 pt-1">
@@ -723,23 +724,30 @@ export default function Home() {
 
   const [mode,setMode]         = useState("analyse");
   const [history,setHistory]   = useState([]);
-  const [detectedLang,setDetectedLang] = useState(null); // auto-detected language
+  const [detectedLang,setDetectedLang]   = useState(null);
+  const [ignoredDetect,setIgnoredDetect] = useState(false); // user clicked ignore
 
   const currentLang=LANGUAGES.find(l=>l.value===language);
 
   useEffect(()=>{setHistory(loadHistory());},[]);
 
-  // Auto-detect language whenever code changes (debounced 500ms)
+  // Re-detect whenever code OR language changes
   useEffect(()=>{
-    if (!code.trim()) { setDetectedLang(null); return; }
+    if (!code.trim()) { setDetectedLang(null); setIgnoredDetect(false); return; }
     const t = setTimeout(()=>{
       const detected = detectLanguage(code);
       setDetectedLang(detected);
+      setIgnoredDetect(false); // reset ignore whenever code changes
     }, 500);
     return ()=>clearTimeout(t);
   },[code]);
 
-  const handleLanguageChange=useCallback(lang=>{setLanguage(lang);setResult(null);setValErr(null);setDetectedLang(null);},[]);
+  // Also re-check mismatch when user manually switches language
+  useEffect(()=>{
+    setIgnoredDetect(false); // switching language clears any previous ignore
+  },[language]);
+
+  const handleLanguageChange=useCallback(lang=>{setLanguage(lang);setResult(null);setValErr(null);setIgnoredDetect(false);},[]);
 
   const analyse=async()=>{
     const err=validateCode(code); if(err){setValErr(err);return;}
@@ -853,29 +861,47 @@ export default function Home() {
                     spellCheck={false} autoComplete="off" autoCapitalize="off"/>
                 </div>
 
-                {/* ── Language mismatch banner ── */}
-                {detectedLang && detectedLang !== language && (() => {
-                  const meta = LANG_META[detectedLang] || LANG_META.javascript;
-                  const detectedLabel = LANGUAGES.find(l=>l.value===detectedLang)?.label || detectedLang;
-                  return (
-                    <div className="flex items-center justify-between bg-amber-950/30 border border-amber-700/40 rounded-xl px-4 py-2.5">
-                      <div className="flex items-center gap-2 text-xs text-amber-400">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                        <span>Looks like <span className="font-semibold" style={{color:meta.bg==="f7df1e"?"#a89000":meta.bg}}>{detectedLabel}</span> code — but <span className="font-semibold text-white">{currentLang?.label}</span> is selected</span>
+                {/* ── Language detection banner ── */}
+                {code.trim().length > 20 && !ignoredDetect && (()=>{
+                  // Case 1: detected a known language that doesn't match selected
+                  if (detectedLang && detectedLang !== language) {
+                    const meta = LANG_META[detectedLang] || LANG_META.javascript;
+                    const detectedLabel = LANGUAGES.find(l=>l.value===detectedLang)?.label || detectedLang;
+                    return (
+                      <div className="flex items-center justify-between bg-amber-950/30 border border-amber-700/40 rounded-xl px-4 py-2.5">
+                        <div className="flex items-center gap-2 text-xs text-amber-400">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                          <span>Looks like <span className="font-semibold" style={{color:meta.bg==="#f7df1e"?"#a89000":meta.bg}}>{detectedLabel}</span> — but <span className="font-semibold text-white">{currentLang?.label}</span> is selected</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 ml-3">
+                          <button
+                            onClick={()=>{setLanguage(detectedLang);setResult(null);setValErr(null);setIgnoredDetect(false);}}
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-all"
+                            style={{background:meta.bg,color:meta.text}}>
+                            Switch to {detectedLabel}
+                          </button>
+                          <button onClick={()=>setIgnoredDetect(true)} className="text-xs text-gray-600 hover:text-gray-400 px-2 py-1.5 rounded-lg hover:bg-[#1e1e2e] transition-all">
+                            Ignore
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 ml-3">
-                        <button
-                          onClick={()=>{setLanguage(detectedLang);setResult(null);setValErr(null);}}
-                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-all"
-                          style={{background:meta.bg,color:meta.text}}>
-                          Switch to {detectedLabel}
-                        </button>
-                        <button onClick={()=>setDetectedLang(language)} className="text-xs text-gray-600 hover:text-gray-400 px-2 py-1.5 rounded-lg hover:bg-[#1e1e2e] transition-all">
-                          Ignore
+                    );
+                  }
+                  // Case 2: code pasted but language couldn't be detected (Kotlin, Swift, etc.)
+                  if (detectedLang === null && code.trim().length > 40) {
+                    return (
+                      <div className="flex items-center justify-between bg-[#111118] border border-[#2e2e3e] rounded-xl px-4 py-2.5">
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 shrink-0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                          <span>Language not auto-detected — make sure the correct language is selected above</span>
+                        </div>
+                        <button onClick={()=>setIgnoredDetect(true)} className="text-xs text-gray-600 hover:text-gray-400 px-2 py-1.5 rounded-lg hover:bg-[#1e1e2e] transition-all shrink-0 ml-3">
+                          Got it
                         </button>
                       </div>
-                    </div>
-                  );
+                    );
+                  }
+                  return null;
                 })()}
                 {valErr&&(
                   <div className="flex items-center gap-2 bg-red-950/40 border border-red-800/50 rounded-xl px-4 py-3 text-xs text-red-400">
