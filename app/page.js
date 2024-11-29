@@ -546,14 +546,28 @@ function ComparePanel({ resultA, resultB, labelA="Version A", labelB="Version B"
 
 // ─── Code Editor Box ───────────────────────────────────────────────────────
 function CodeEditor({ code, onChange, language, onLanguageChange, label, color="text-purple-400" }) {
-  const [copied,setCopied]=useState(false);
-  const lang=LANGUAGES.find(l=>l.value===language);
+  const [copied,setCopied]           = useState(false);
+  const [detectedLang,setDetected]   = useState(null);
+  const [ignored,setIgnored]         = useState(false);
+  const lang = LANGUAGES.find(l=>l.value===language);
+
+  // Auto-detect on code change
+  useEffect(()=>{
+    if(!code.trim()){ setDetected(null); setIgnored(false); return; }
+    const t=setTimeout(()=>{ setDetected(detectLanguage(code)); setIgnored(false); },500);
+    return()=>clearTimeout(t);
+  },[code]);
+
+  // Clear ignore when language manually changed
+  useEffect(()=>{ setIgnored(false); },[language]);
+
   const copy=async()=>{if(!code.trim())return;await navigator.clipboard.writeText(code);setCopied(true);setTimeout(()=>setCopied(false),1500);};
+
   return(
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-3">
         <span className={`text-xs font-mono font-bold ${color}`}>{label}</span>
-        <LanguageDropdown language={language} onChange={onLanguageChange}/>
+        <LanguageDropdown language={language} onChange={v=>{onLanguageChange(v);setIgnored(false);}}/>
         {SAMPLES[language]&&(
           <button onClick={()=>onChange(SAMPLES[language]?.code||SAMPLES[language])}
             className="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-400 border border-[#1e1e2e] rounded-xl hover:border-purple-700 hover:text-purple-400 transition-all font-mono">
@@ -583,6 +597,33 @@ function CodeEditor({ code, onChange, language, onLanguageChange, label, color="
           placeholder={`// Paste your ${lang?.label} code here…`}
           spellCheck={false} autoComplete="off" autoCapitalize="off"/>
       </div>
+      {/* Mismatch banner */}
+      {code.trim().length>20 && !ignored && detectedLang && detectedLang!==language && (()=>{
+        const m=LANG_META[detectedLang]||LANG_META.javascript;
+        const dl=LANGUAGES.find(l=>l.value===detectedLang)?.label||detectedLang;
+        return(
+          <div className="flex items-center justify-between bg-amber-950/30 border border-amber-700/40 rounded-xl px-3 py-2">
+            <span className="text-xs text-amber-400 flex items-center gap-1.5">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Looks like <span className="font-semibold ml-1" style={{color:m.bg==="#f7df1e"?"#a89000":m.bg}}>{dl}</span>
+            </span>
+            <div className="flex items-center gap-1.5 ml-2 shrink-0">
+              <button onClick={()=>{onLanguageChange(detectedLang);setIgnored(false);}} className="text-xs px-2.5 py-1 rounded-lg font-semibold" style={{background:m.bg,color:m.text}}>Switch</button>
+              <button onClick={()=>setIgnored(true)} className="text-xs text-gray-600 hover:text-gray-400 px-2 py-1 rounded hover:bg-[#1e1e2e]">Ignore</button>
+            </div>
+          </div>
+        );
+      })()}
+      {/* Unknown language hint */}
+      {code.trim().length>40 && !ignored && detectedLang===null && (
+        <div className="flex items-center justify-between bg-[#111118] border border-[#2e2e3e] rounded-xl px-3 py-2">
+          <span className="text-xs text-gray-500 flex items-center gap-1.5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Language not detected — confirm selection above
+          </span>
+          <button onClick={()=>setIgnored(true)} className="text-xs text-gray-600 hover:text-gray-400 px-2 py-1 rounded hover:bg-[#1e1e2e] shrink-0 ml-2">Got it</button>
+        </div>
+      )}
       <p className="text-[10px] text-gray-600 font-mono px-1">{code.split("\n").length} lines · {code.length} chars</p>
     </div>
   );

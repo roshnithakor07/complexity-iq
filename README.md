@@ -1,55 +1,71 @@
 # ⚡ ComplexityIQ — Time & Space Complexity Analyser
 
-> AI-powered Big-O complexity analyser for algorithms. Paste your code, get instant analysis with detailed explanations, case breakdowns, and optimisation suggestions.
+> AI-powered Big-O complexity analyser for algorithms. Paste your code, get instant analysis with visual growth charts, case breakdowns, auto-refactor suggestions, and a full comparison tool.
 
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)
-![Claude API](https://img.shields.io/badge/Claude-API-orange?style=flat-square)
-![JavaScript](https://img.shields.io/badge/JavaScript-ES2024-yellow?style=flat-square&logo=javascript)
+![Groq](https://img.shields.io/badge/Groq-LLaMA_3.3_70B-orange?style=flat-square)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38bdf8?style=flat-square&logo=tailwindcss)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
-
----
-
-## 📸 Preview
-
-```
-┌─────────────────────────────────────────────────┐
-│  ⚡ ComplexityIQ                          [Beta] │
-├──────────────────────┬──────────────────────────┤
-│  JS  PY  Java  C++   │  Score     Time   Space  │
-│                      │  [ 72 ]   O(n²)   O(n)  │
-│  // your code here   ├──────────────────────────┤
-│  for(let i=0;...)    │  Best     Average  Worst │
-│    for(let j=0;...) │  O(n)     O(n²)   O(n²) │
-│                      ├──────────────────────────┤
-│  [  Analyse  ]       │  → Use hash map to O(n) │
-└──────────────────────┴──────────────────────────┘
-```
 
 ---
 
 ## ✨ Features
 
+### Core Analysis
 - **Multi-language support** — JavaScript, TypeScript, Python, Java, C++, Go, Rust
-- **Full complexity report** — Time complexity, Space complexity, Best / Average / Worst case
-- **Loop & recursion detection** — Counts nested loops, detects recursive calls
-- **Bottleneck identification** — Pinpoints the exact performance bottleneck in your code
-- **Optimisation suggestions** — AI-generated tips to improve your algorithm
-- **Overall score** — 0–100 readability score with visual ring indicator
-- **Big-O reference chart** — Built-in complexity cheat sheet
-- **Dark terminal UI** — Minimal, distraction-free editor experience
-- **Sample code snippets** — One-click examples for each language
+- **Full complexity report** — Time + Space complexity with Big-O notation
+- **Case breakdown** — Best, Average, Worst case analysis
+- **Loop & recursion detection** — Counts nested loops, detects recursive patterns
+- **Bottleneck identification** — Pinpoints the exact performance problem
+- **AI suggestions** — Specific tips to improve your algorithm
+- **Overall score** — 0–100 score with animated ring indicator
+
+### Smart Language Detection
+- **Auto-detect on paste** — Detects language using 40+ signals per language
+- **Mismatch warning** — Banner appears if code doesn't match selected language
+- **One-click switch** — Switch to detected language instantly
+- **Unknown language hint** — Prompts to verify for unsupported languages (Kotlin, Swift, etc.)
+- **Works in Compare mode too** — Both Version A and B editors have detection
+
+### Big-O Chart
+- **Visual growth curve** — SVG chart with all 6 complexity classes
+- **Highlighted curve** — Your complexity glowed and highlighted
+- **Clean legend** — All others dimmed to background
+
+### Auto-Refactor
+- **AI optimisation** — One click to get optimised code
+- **Same language always** — Java in → Java out, never switches language
+- **Before/After comparison** — Complexity and score improvement shown
+- **What changed** — Bullet-point breakdown of every optimisation
+- **Copy & Retry** — Copy output or regenerate
+- **Smart trigger** — Only shows for Fair / Poor / Critical code
+
+### Compare Mode
+- **Side-by-side editor** — Paste two versions simultaneously
+- **Parallel analysis** — Both analysed at the same time
+- **Winner declaration** — Verdict with score difference
+- **Comparison table** — Time, Space, Score, Loops side by side
+
+### History
+- **Auto-saved** — Every analysis saved to localStorage
+- **Stats dashboard** — Total, Avg Score, Best, Trend
+- **Score sparkline** — Visual trend over time
+- **Grouped by date** — Organised by day
+- **Reload** — Send historical code back to analyser
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer     | Technology            |
-|-----------|-----------------------|
-| Framework | Next.js 14 (App Router) |
-| Styling   | Tailwind CSS          |
-| AI Engine | Anthropic Claude API  |
-| Runtime   | Node.js               |
-| Fonts     | JetBrains Mono, Space Grotesk |
+| Layer      | Technology                         |
+|------------|------------------------------------|
+| Framework  | Next.js 14 (App Router)            |
+| Styling    | Tailwind CSS                       |
+| AI Engine  | Groq API — LLaMA 3.3 70B Versatile |
+| Charts     | Pure SVG (zero dependencies)       |
+| Storage    | localStorage (client-side)         |
+| Runtime    | Node.js ≥ 18                       |
+| Fonts      | JetBrains Mono, Space Grotesk      |
 
 ---
 
@@ -58,62 +74,62 @@
 ### Prerequisites
 
 - Node.js `>= 18.17.0`
-- npm or yarn
-- Anthropic API key → [console.anthropic.com](https://console.anthropic.com/)
+- Groq API key → [console.groq.com](https://console.groq.com/) *(free tier available)*
 
 ### Installation
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/roshnithakor07/complexity-analyser.git
-cd complexity-analyser
+git clone https://github.com/roshnithakor07/complexity-iq.git
+cd complexity-iq
 
 # 2. Install dependencies
 npm install
 
-# 3. Set up environment variables
+# 3. Set up environment
 cp .env.example .env.local
 ```
 
 ### Configure API Key
 
-Open `.env.local` and add your key:
-
 ```env
-ANTHROPIC_API_KEY=sk-ant-your-key-here
+# .env.local
+GROQ_API_KEY=gsk_your_key_here
 ```
 
-### Run development server
+### Run
 
 ```bash
 npm run dev
+# Open http://localhost:3000
 ```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-complexity-analyser/
+complexity-iq/
 │
 ├── app/
 │   ├── api/
-│   │   └── analyse/
-│   │       └── route.js        # Claude API endpoint
-│   ├── globals.css             # Global styles + Tailwind
-│   ├── layout.js               # Root layout + metadata
-│   └── page.js                 # Main UI (editor + results)
+│   │   ├── analyse/
+│   │   │   └── route.js        # Analysis endpoint
+│   │   └── refactor/
+│   │       └── route.js        # Auto-refactor endpoint
+│   ├── error.js                # Error boundary
+│   ├── not-found.js            # 404 page
+│   ├── globals.css
+│   ├── layout.js
+│   └── page.js                 # All UI components
 │
 ├── lib/
-│   └── constants.js            # Languages, samples, rating config
+│   └── constants.js            # Language config + samples
 │
-├── .env.example                # Environment variable template
-├── .gitignore
+├── .env.example
+├── .env.local                  # (gitignored)
 ├── next.config.js
 ├── package.json
-├── postcss.config.js
 ├── tailwind.config.js
 └── README.md
 ```
@@ -124,69 +140,59 @@ complexity-analyser/
 
 ### `POST /api/analyse`
 
-Analyses the provided code and returns a complexity report.
-
-**Request Body**
-
+**Request**
 ```json
-{
-  "code": "function twoSum(nums, target) { ... }",
-  "language": "javascript"
-}
+{ "code": "function twoSum(...) {...}", "language": "javascript" }
 ```
 
 **Response**
-
 ```json
 {
   "success": true,
   "result": {
-    "time_complexity": {
-      "notation": "O(n)",
-      "name": "Linear",
-      "rating": "good",
-      "explanation": "Single pass through the array using a hash map."
-    },
-    "space_complexity": {
-      "notation": "O(n)",
-      "name": "Linear",
-      "rating": "good",
-      "explanation": "Hash map stores at most n entries."
-    },
+    "time_complexity": { "notation": "O(n)", "rating": "good", "explanation": "..." },
+    "space_complexity": { "notation": "O(n)", "rating": "good", "explanation": "..." },
     "loops_detected": 1,
     "recursive": false,
     "best_case": "O(1)",
     "worst_case": "O(n)",
     "average_case": "O(n)",
-    "bottleneck": "Single for loop at lines 3-10",
-    "suggestions": [
-      "Optimal solution — hash map approach is already the best O(n).",
-      "Consider adding input validation for edge cases."
-    ],
-    "overall_score": 82,
-    "language_detected": "javascript"
+    "bottleneck": "for loop at lines 3–10",
+    "suggestions": ["Already optimal.", "Add input validation."],
+    "overall_score": 82
   }
 }
 ```
 
-**Error Response**
+### `POST /api/refactor`
 
+**Request**
 ```json
-{
-  "error": "No code provided"
-}
+{ "code": "...", "language": "python", "current_time": "O(n²)", "current_score": 20 }
 ```
 
-**Supported languages:** `javascript`, `typescript`, `python`, `java`, `cpp`, `go`, `rust`
+**Response**
+```json
+{
+  "success": true,
+  "result": {
+    "refactored_code": "def optimised(arr):\n  ...",
+    "new_time_complexity": "O(n log n)",
+    "improvement_summary": "Replaced bubble sort with merge sort",
+    "changes": ["Replaced nested loop", "Added divide-and-conquer"],
+    "score_before": 20,
+    "score_after": 65
+  }
+}
+```
 
 ---
 
 ## ⚙️ Environment Variables
 
-| Variable             | Required | Description                          |
-|----------------------|----------|--------------------------------------|
-| `ANTHROPIC_API_KEY`  | ✅ Yes   | Your Anthropic Claude API key        |
-| `NEXT_PUBLIC_APP_URL`| ❌ No    | Public URL (for production metadata) |
+| Variable       | Required | Description       |
+|----------------|----------|-------------------|
+| `GROQ_API_KEY` | ✅ Yes   | Your Groq API key |
 
 ---
 
@@ -195,98 +201,38 @@ Analyses the provided code and returns a complexity report.
 ### Vercel (recommended)
 
 ```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel
-
-# Set environment variable in Vercel dashboard:
-# ANTHROPIC_API_KEY = your-key
+npm i -g vercel && vercel
 ```
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/roshnithakor07/complexity-analyser)
+Add `GROQ_API_KEY` in Vercel → Settings → Environment Variables.
 
-### Docker
-
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY . .
-RUN npm run build
-
-EXPOSE 3000
-CMD ["npm", "start"]
-```
-
-```bash
-docker build -t complexity-analyser .
-docker run -p 3000:3000 -e ANTHROPIC_API_KEY=your-key complexity-analyser
-```
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/roshnithakor07/complexity-iq)
 
 ---
 
-## 🧩 How It Works
+## ✅ What's Built
 
-```
-User pastes code
-      │
-      ▼
-POST /api/analyse
-      │
-      ▼
-Claude API (claude-opus-4-5)
-  - Analyses loop nesting depth
-  - Detects recursion patterns
-  - Counts data structure ops
-  - Evaluates best/worst/average case
-      │
-      ▼
-Structured JSON response
-      │
-      ▼
-ResultPanel renders:
-  - Score ring
-  - Complexity badges
-  - Case analysis table
-  - Bottleneck highlight
-  - Optimisation suggestions
-```
+- [x] 7-language analysis (JS, TS, Python, Java, C++, Go, Rust)
+- [x] Big-O growth chart (pure SVG)
+- [x] Side-by-side compare mode
+- [x] Auto-refactor in correct language
+- [x] History journal with score trend sparkline
+- [x] Auto language detection on paste
+- [x] Mismatch warning in Analyse + Compare modes
 
----
+## 🔮 Roadmap
 
-## 🗺️ Roadmap
-
-- [ ] **Syntax highlighting** — Prism.js integration in editor
-- [ ] **History** — Save past analyses to MongoDB
-- [ ] **Side-by-side compare** — Compare two code snippets
-- [ ] **Share link** — Shareable URL for each analysis
-- [ ] **Export PDF** — Download report as PDF
-- [ ] **VS Code Extension** — Inline complexity hints in editor
-- [ ] **API Rate Limiting** — Redis-based per-IP rate limits
-- [ ] **Auth** — User accounts with JWT + saved snippets
-
----
-
-## 🤝 Contributing
-
-```bash
-# Fork the repo, then:
-git checkout -b feature/your-feature
-git commit -m "feat: add your feature"
-git push origin feature/your-feature
-# Open a Pull Request
-```
+- [ ] Syntax highlighting (Prism.js)
+- [ ] Shareable analysis URL
+- [ ] Export as PDF
+- [ ] VS Code Extension
+- [ ] Kotlin, Swift, Ruby support
 
 ---
 
 ## 📄 License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE)
 
 ---
 
@@ -300,4 +246,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-*Built to solve a real problem: understanding the performance cost of every line of code.*
+*Built to solve a real problem: knowing the performance cost of every line of code.*
