@@ -70,6 +70,8 @@ const LANG_META = {
   cpp:       { icon:"C++", bg:"#00599c", text:"#fff", glow:"rgba(0,89,156,0.15)"    },
   go:        { icon:"GO",  bg:"#00acd7", text:"#fff", glow:"rgba(0,172,215,0.15)"   },
   rust:      { icon:"RS",  bg:"#ce4a00", text:"#fff", glow:"rgba(206,74,0,0.15)"    },
+  kotlin:    { icon:"KT",  bg:"#7f52ff", text:"#fff", glow:"rgba(127,82,255,0.15)"  },
+  swift:     { icon:"SW",  bg:"#f05138", text:"#fff", glow:"rgba(240,81,56,0.15)"   },
 };
 
 const RATING = {
@@ -87,65 +89,150 @@ function detectLanguage(code) {
   if (!code || code.trim().length < 10) return null;
   const c = code;
   const scores = {
-    java:       0,
-    python:     0,
-    typescript: 0,
-    javascript: 0,
-    cpp:        0,
-    go:         0,
-    rust:       0,
+    java:0, python:0, typescript:0, javascript:0,
+    cpp:0, go:0, rust:0, kotlin:0, swift:0,
   };
-  // Java signals
-  if (/public\s+(static\s+)?(void|int|String|boolean|long|double|float|char)/.test(c)) scores.java += 4;
-  if (/System\.out\.(print|println)/.test(c)) scores.java += 4;
-  if (/import\s+java\./.test(c)) scores.java += 5;
-  if (/new\s+(ArrayList|HashMap|HashSet|LinkedList|Stack|Queue)</.test(c)) scores.java += 4;
-  if (/int\[\]|String\[\]|boolean\[\]/.test(c)) scores.java += 3;
-  if (/@Override|@Param|@NotNull/.test(c)) scores.java += 3;
-  if (/\bthrows\s+\w+Exception/.test(c)) scores.java += 3;
-  // Python signals
-  if (/^\s*def\s+\w+\s*\(/m.test(c)) scores.python += 4;
-  if (/^\s*import\s+\w+|^\s*from\s+\w+\s+import/m.test(c)) scores.python += 2;
-  if (/print\s*\(/.test(c)) scores.python += 2;
-  if (/\bself\b/.test(c)) scores.python += 4;
-  if (/:\s*$|elif\s|__init__|__str__/.test(c)) scores.python += 3;
-  if (/\bNone\b|\bTrue\b|\bFalse\b/.test(c)) scores.python += 2;
-  if (/->|f"/.test(c)) scores.python += 2;
-  // TypeScript signals
-  if (/:\s*(string|number|boolean|void|any|never|unknown)\b/.test(c)) scores.typescript += 4;
-  if (/interface\s+\w+|type\s+\w+\s*=/.test(c)) scores.typescript += 4;
-  if (/<T>|Array<\w+>|Promise</.test(c)) scores.typescript += 3;
-  if (/as\s+\w+\s*[;,)]/.test(c)) scores.typescript += 2;
-  // C++ signals
-  if (/#include\s*[<"]/.test(c)) scores.cpp += 5;
-  if (/std::|cout\s*<<|cin\s*>>/.test(c)) scores.cpp += 4;
-  if (/vector<|unordered_map<|pair</.test(c)) scores.cpp += 4;
-  if (/int\s+main\s*\(/.test(c)) scores.cpp += 3;
-  if (/nullptr|->/.test(c)) scores.cpp += 2;
-  // Go signals
-  if (/^package\s+\w+/m.test(c)) scores.go += 5;
-  if (/^func\s+\w+/m.test(c)) scores.go += 4;
-  if (/fmt\.(Print|Println|Sprintf)/.test(c)) scores.go += 4;
-  if (/:=/.test(c)) scores.go += 3;
-  if (/\[\]int|\[\]string|make\(/.test(c)) scores.go += 3;
-  // Rust signals
-  if (/^fn\s+\w+/m.test(c)) scores.rust += 4;
-  if (/println!\s*\(|eprintln!\s*\(/.test(c)) scores.rust += 4;
-  if (/let\s+mut\s+\w+/.test(c)) scores.rust += 4;
-  if (/impl\s+\w+|use\s+std::/.test(c)) scores.rust += 3;
-  if (/&str\b|String::from|Vec</.test(c)) scores.rust += 3;
-  // JavaScript signals (lowest priority — many patterns overlap)
-  if (/console\.(log|error|warn)/.test(c)) scores.javascript += 3;
-  if (/=>\s*{|=>\s*\(/.test(c)) scores.javascript += 2;
-  if (/const\s+\w+\s*=|let\s+\w+\s*=|var\s+\w+\s*=/.test(c)) scores.javascript += 1;
-  if (/require\s*\(|module\.exports/.test(c)) scores.javascript += 3;
+  // Java
+  if (/public\s+(static\s+)?(void|int|String|boolean|long|double|float|char)/.test(c)) scores.java+=4;
+  if (/System\.out\.(print|println)/.test(c)) scores.java+=4;
+  if (/import\s+java\./.test(c)) scores.java+=5;
+  if (/new\s+(ArrayList|HashMap|HashSet|LinkedList|Stack|Queue)</.test(c)) scores.java+=4;
+  if (/int\[\]|String\[\]|boolean\[\]/.test(c)) scores.java+=3;
+  if (/@Override|@Param|@NotNull/.test(c)) scores.java+=3;
+  if (/\bthrows\s+\w+Exception/.test(c)) scores.java+=3;
+  // Python
+  if (/^\s*def\s+\w+\s*\(/m.test(c)) scores.python+=4;
+  if (/^\s*import\s+\w+|^\s*from\s+\w+\s+import/m.test(c)) scores.python+=2;
+  if (/print\s*\(/.test(c)) scores.python+=2;
+  if (/\bself\b/.test(c)) scores.python+=4;
+  if (/:\s*$|elif\s|__init__|__str__/.test(c)) scores.python+=3;
+  if (/\bNone\b|\bTrue\b|\bFalse\b/.test(c)) scores.python+=2;
+  // TypeScript
+  if (/:\s*(string|number|boolean|void|any|never|unknown)\b/.test(c)) scores.typescript+=4;
+  if (/interface\s+\w+|type\s+\w+\s*=/.test(c)) scores.typescript+=4;
+  if (/<T>|Array<\w+>|Promise</.test(c)) scores.typescript+=3;
+  if (/as\s+\w+\s*[;,)]/.test(c)) scores.typescript+=2;
+  // C++
+  if (/#include\s*[<"]/.test(c)) scores.cpp+=5;
+  if (/std::|cout\s*<<|cin\s*>>/.test(c)) scores.cpp+=4;
+  if (/vector<|unordered_map<|pair</.test(c)) scores.cpp+=4;
+  if (/int\s+main\s*\(/.test(c)) scores.cpp+=3;
+  if (/nullptr/.test(c)) scores.cpp+=2;
+  // Go
+  if (/^package\s+\w+/m.test(c)) scores.go+=5;
+  if (/^func\s+\w+/m.test(c)) scores.go+=4;
+  if (/fmt\.(Print|Println|Sprintf)/.test(c)) scores.go+=4;
+  if (/:=/.test(c)) scores.go+=3;
+  if (/\[\]int|\[\]string|make\(/.test(c)) scores.go+=3;
+  // Rust
+  if (/^fn\s+\w+/m.test(c)) scores.rust+=4;
+  if (/println!\s*\(|eprintln!\s*\(/.test(c)) scores.rust+=4;
+  if (/let\s+mut\s+\w+/.test(c)) scores.rust+=4;
+  if (/impl\s+\w+|use\s+std::/.test(c)) scores.rust+=3;
+  if (/&str\b|String::from|Vec</.test(c)) scores.rust+=3;
+  // Kotlin
+  if (/^fun\s+\w+/m.test(c)) scores.kotlin+=5;
+  if (/\bval\s+\w+|\bvar\s+\w+/.test(c)) scores.kotlin+=3;
+  if (/println\s*\(|print\s*\(/.test(c)&&/fun\s/.test(c)) scores.kotlin+=2;
+  if (/when\s*\{|when\s*\(/.test(c)) scores.kotlin+=4;
+  if (/data\s+class|sealed\s+class|companion\s+object/.test(c)) scores.kotlin+=5;
+  if (/\?\.|!!\.|\.let\s*\{|\.apply\s*\{|\.run\s*\{/.test(c)) scores.kotlin+=3;
+  if (/:\s*(Int|String|Boolean|Long|Double|List|Map)\b/.test(c)) scores.kotlin+=3;
+  if (/IntArray|listOf\(|mapOf\(|arrayOf\(/.test(c)) scores.kotlin+=3;
+  // Swift
+  if (/^func\s+\w+/m.test(c)&&/\->\s*\w+/.test(c)) scores.swift+=5;
+  if (/\blet\s+\w+\s*=|\bvar\s+\w+\s*=/.test(c)&&!/\bval\b/.test(c)&&!/\bfun\b/.test(c)) scores.swift+=2;
+  if (/guard\s+let|guard\s+var/.test(c)) scores.swift+=5;
+  if (/\.enumerated\(\)|\.map\s*\{|\.filter\s*\{|\.reduce\s*\(/.test(c)) scores.swift+=3;
+  if (/\[Int\]|\[String\]|\[Any\]/.test(c)) scores.swift+=4;
+  if (/print\s*\(.*\)/.test(c)&&/func\s/.test(c)&&!scores.kotlin) scores.swift+=2;
+  if (/protocol\s+\w+|extension\s+\w+/.test(c)) scores.swift+=4;
+  if (/optional|nil\b/.test(c)) scores.swift+=3;
+  // JavaScript (lowest priority)
+  if (/console\.(log|error|warn)/.test(c)) scores.javascript+=3;
+  if (/=>\s*{|=>\s*\(/.test(c)) scores.javascript+=2;
+  if (/require\s*\(|module\.exports/.test(c)) scores.javascript+=3;
+  if (/const\s+\w+\s*=|let\s+\w+\s*=/.test(c)) scores.javascript+=1;
+  // TypeScript beats JS
+  if (scores.typescript>0) scores.javascript=Math.max(0,scores.javascript-2);
+  // Kotlin beats Swift for 'val/var/fun' overlap
+  if (scores.kotlin>2) scores.swift=Math.max(0,scores.swift-2);
 
-  // TypeScript beats JS if it has type annotations
-  if (scores.typescript > 0) scores.javascript = Math.max(0, scores.javascript - 2);
-
-  const best = Object.entries(scores).sort((a,b)=>b[1]-a[1])[0];
-  return best[1] >= 3 ? best[0] : null;
+  const best=Object.entries(scores).sort((a,b)=>b[1]-a[1])[0];
+  return best[1]>=3?best[0]:null;
 }
+
+// ─── Syntax Highlighter ────────────────────────────────────────────────────
+const KW = {
+  javascript: 'function return const let var if else for while do switch case break continue new class extends import export default typeof instanceof null undefined true false this async await try catch finally throw of in',
+  typescript: 'function return const let var if else for while do switch case break continue new class extends import export default typeof instanceof null undefined true false this async await try catch finally throw of in interface type enum implements abstract public private protected readonly string number boolean void any never unknown',
+  python:     'def return if elif else for while in not and or import from class try except finally raise with as pass break continue lambda yield global nonlocal True False None self is del assert',
+  java:       'public private protected static final void int long double float boolean char String return if else for while do switch case break continue new class interface extends implements import package try catch finally throw throws null true false this super abstract synchronized',
+  cpp:        'int long double float bool char void return if else for while do switch case break continue new delete class struct namespace template typename public private protected virtual override const static nullptr true false this auto using',
+  go:         'func return if else for range switch case break continue var const type struct interface map chan go defer select import package nil true false make new len cap append copy delete',
+  rust:       'fn return if else for while loop match break continue let mut const static struct enum impl trait use mod pub crate self super move async await true false None Some Ok Err',
+  kotlin:     'fun return if else for while when break continue val var class object interface import package try catch finally throw null true false this super override abstract data sealed companion by in out is as typealias init constructor',
+  swift:      'func return if else for while switch case break continue let var class struct enum protocol extension import guard defer throw try catch nil true false self super override mutating static final init deinit where in as is',
+};
+
+function highlight(code, language) {
+  if (!code) return '';
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const kws = new Set((KW[language]||KW.javascript).split(' '));
+  const isPy = language==='python';
+  const pats = [
+    { re:/\/\*[\s\S]*?\*\//g,  cls:'cm' },
+    { re:isPy?/\/\/[^\n]*|#[^\n]*/g:/\/\/[^\n]*/g, cls:'cm' },
+    ...(isPy?[{re:/#[^\n]*/g,cls:'cm'}]:[]),
+    { re:/"""[\s\S]*?"""|'''[\s\S]*?'''/g, cls:'st' },
+    { re:/`[^`\n]*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, cls:'st' },
+    { re:/\b0x[0-9a-fA-F]+\b|\b\d+\.?\d*\b/g, cls:'nm' },
+    { re:/\b[a-zA-Z_$][a-zA-Z0-9_$]*\b/g, cls:'id' },
+  ];
+  let out='', pos=0;
+  while(pos<code.length){
+    let best=null;
+    for(const p of pats){
+      const re=new RegExp(p.re.source,'g'); re.lastIndex=pos;
+      const m=re.exec(code);
+      if(m&&(!best||m.index<best.index)) best={index:m.index,text:m[0],cls:p.cls};
+    }
+    if(!best){ out+=esc(code.slice(pos)); break; }
+    if(best.index>pos) out+=esc(code.slice(pos,best.index));
+    const t=esc(best.text);
+    if(best.cls==='id'){
+      if(kws.has(best.text))            out+=`<span class="hl-kw">${t}</span>`;
+      else if(/^[A-Z]/.test(best.text)) out+=`<span class="hl-tp">${t}</span>`;
+      else                              out+=t;
+    } else {
+      out+=`<span class="hl-${best.cls}">${t}</span>`;
+    }
+    pos=best.index+best.text.length;
+  }
+  return out+'\n';
+}
+
+// ─── Editor with Syntax Highlight Overlay ─────────────────────────────────
+function EditorTextarea({ value, onChange, language, placeholder, minH='320px' }) {
+  const taRef = useRef(null);
+  const hlRef = useRef(null);
+  const syncScroll = () => {
+    if(hlRef.current&&taRef.current) hlRef.current.scrollTop=taRef.current.scrollTop;
+  };
+  return (
+    <div className="hl-wrap" style={{minHeight:minH}}>
+      <div ref={hlRef} className="hl-layer" style={{minHeight:minH}}
+        dangerouslySetInnerHTML={{__html:highlight(value,language)}}/>
+      <textarea ref={taRef} value={value}
+        onChange={e=>onChange(e.target.value)} onScroll={syncScroll}
+        style={{minHeight:minH}}
+        className="hl-input code-editor w-full px-5 py-4 resize-none outline-none text-sm leading-relaxed font-mono"
+        placeholder={placeholder}
+        spellCheck={false} autoComplete="off" autoCapitalize="off"/>
+    </div>
+  );
+}
+
 function LanguageDropdown({ language, onChange }) {
   const [open, setOpen] = useState(false);
   const ref  = useRef(null);
@@ -379,7 +466,7 @@ function RefactorPanel({ code, language, result }) {
     setCopied(true); setTimeout(()=>setCopied(false), 1500);
   };
 
-  const EXT = {javascript:"js",typescript:"ts",python:"py",java:"java",cpp:"cpp",go:"go",rust:"rs"};
+  const EXT = {javascript:"js",typescript:"ts",python:"py",java:"java",cpp:"cpp",go:"go",rust:"rs",kotlin:"kt",swift:"swift"};
   const ext = EXT[language] || "txt";
 
   return (
@@ -592,10 +679,8 @@ function CodeEditor({ code, onChange, language, onLanguageChange, label, color="
             </button>
           </div>
         </div>
-        <textarea value={code} onChange={e=>onChange(e.target.value)}
-          className="code-editor w-full bg-transparent px-5 py-5 text-[#e2e8f0] resize-none outline-none min-h-[280px] text-sm leading-relaxed font-mono"
-          placeholder={`// Paste your ${lang?.label} code here…`}
-          spellCheck={false} autoComplete="off" autoCapitalize="off"/>
+        <EditorTextarea value={code} onChange={onChange} language={language}
+          placeholder={`// Paste your ${lang?.label} code here…`} minH="280px"/>
       </div>
       {/* Mismatch banner */}
       {code.trim().length>20 && !ignored && detectedLang && detectedLang!==language && (()=>{
@@ -896,10 +981,11 @@ export default function Home() {
                       </button>
                     </div>
                   </div>
-                  <textarea value={code} onChange={e=>{setCode(e.target.value);setResult(null);setValErr(null);}}
-                    className="code-editor w-full bg-transparent px-5 py-4 text-[#e2e8f0] resize-none outline-none min-h-[340px] text-sm leading-relaxed font-mono"
+                  <EditorTextarea value={code}
+                    onChange={v=>{setCode(v);setResult(null);setValErr(null);}}
+                    language={language}
                     placeholder={`// Paste your ${currentLang?.label} code here…`}
-                    spellCheck={false} autoComplete="off" autoCapitalize="off"/>
+                    minH="340px"/>
                 </div>
 
                 {/* ── Language detection banner ── */}

@@ -12,7 +12,7 @@
 ## ✨ Features
 
 ### Core Analysis
-- **Multi-language support** — JavaScript, TypeScript, Python, Java, C++, Go, Rust
+- **Multi-language support** — JavaScript, TypeScript, Python, Java, C++, Go, Rust, Kotlin, Swift
 - **Full complexity report** — Time + Space complexity with Big-O notation
 - **Case breakdown** — Best, Average, Worst case analysis
 - **Loop & recursion detection** — Counts nested loops, detects recursive patterns
@@ -226,7 +226,7 @@ Add `GROQ_API_KEY` in Vercel → Settings → Environment Variables.
 - [ ] Shareable analysis URL
 - [ ] Export as PDF
 - [ ] VS Code Extension
-- [ ] Kotlin, Swift, Ruby support
+- [x] Kotlin, Swift support
 
 ---
 

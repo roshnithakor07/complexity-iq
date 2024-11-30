@@ -29,9 +29,11 @@ CRITICAL LANGUAGE RULES — read carefully:
 - If input is C++ → output must be valid C++ (use unordered_map, vector, etc.)
 - If input is Go → output must be valid Go
 - If input is Rust → output must be valid Rust
+- If input is Kotlin → output must be valid Kotlin (use Map, List, val/var, etc.)
+- If input is Swift → output must be valid Swift (use Dictionary, Array, let/var, etc.)
 - NEVER switch to JavaScript or any other language. The output language must match the input language exactly.
 - Keep the same function/method name and signature style as the original.
-- Use idiomatic patterns for the target language (e.g. Java: HashMap not Map literal, Python: dict not object).
+- Use idiomatic patterns for the target language.
 
 OTHER RULES:
 - refactored_code must be a complete working function/method as a JSON string (escape newlines as \\n)

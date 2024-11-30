@@ -131,3 +131,37 @@ body {
 .bar-fill {
   transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+/* ── Syntax highlight overlay ───────────────────────────────────────────── */
+.hl-wrap {
+  position: relative;
+}
+.hl-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-all;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 16px 20px;
+  color: #e2e8f0;
+  tab-size: 2;
+  z-index: 0;
+}
+textarea.hl-input {
+  position: relative !important;
+  background: transparent !important;
+  color: transparent !important;
+  caret-color: #a78bfa !important;
+  z-index: 1;
+}
+/* Token colours */
+.hl-kw { color: #c084fc; }
+.hl-st { color: #86efac; }
+.hl-cm { color: #4b5563; font-style: italic; }
+.hl-nm { color: #fbbf24; }
+.hl-tp { color: #f0abfc; }
