@@ -153,7 +153,7 @@ function AnalysingLoader() {
 
 // ─── Big-O Chart — LARGE ───────────────────────────────────────────────────
 function BigOChart({ notation, compact=false }) {
-  const W=560, H=compact?160:240;
+  const W=560, H=compact?130:190;
   const PAD={t:16,r:16,b:32,l:42};
   const cW=W-PAD.l-PAD.r, cH=H-PAD.t-PAD.b, N=25;
   const clamp=v=>Math.min(v,cH);
@@ -230,90 +230,57 @@ function ResultPanel({ result, code="", language="javascript", showChart=true, s
           bottleneck, suggestions } = result;
   const tcS=ratingStyle(tc?.rating), scS=ratingStyle(sc?.rating);
   return (
-    <div className="space-y-5">
-      {/* Score + Time + Space — 3 col */}
-      <div className="grid grid-cols-[100px_1fr_1fr] gap-4">
-        <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl flex flex-col items-center justify-center gap-2 py-5">
-          <ScoreRing score={overall_score||0}/>
+    <div className="space-y-3">
+      <div className="grid gap-3" style={{gridTemplateColumns:"80px 1fr 1fr"}}>
+        <div className="bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl flex flex-col items-center justify-center gap-1 py-4">
+          <ScoreRing score={overall_score||0} size={68}/>
           <p className="text-[10px] text-gray-600 font-mono">Score</p>
         </div>
-        {/* Time */}
-        <div className="bg-[#111118] border rounded-xl px-5 py-4" style={{borderColor:tcS.border}}>
-          <div className="flex items-center justify-between mb-2.5">
-            <div className="flex items-center gap-2 text-xs text-gray-400"><Icon.Clock/><span>Time Complexity</span></div>
-            <span className="text-[10px] px-2.5 py-1 rounded-full font-mono font-semibold" style={{background:tcS.bg,color:tcS.color,border:`1px solid ${tcS.border}`}}>{tcS.label}</span>
+        <div className="bg-[#0a0a0f] border rounded-xl px-3 py-3" style={{borderColor:tcS.border}}>
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1 text-[11px] text-gray-400"><Icon.Clock/><span>Time</span></div>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-mono" style={{background:tcS.bg,color:tcS.color}}>{tcS.label}</span>
           </div>
-          <p className="font-mono font-bold text-3xl leading-none mb-2" style={{color:tcS.color}}>{tc?.notation||"—"}</p>
-          <p className="text-xs text-gray-500 leading-relaxed">{tc?.explanation}</p>
+          <p className="font-mono font-bold text-xl leading-none mb-1" style={{color:tcS.color}}>{tc?.notation||"—"}</p>
+          <p className="text-[11px] text-gray-500 line-clamp-2">{tc?.explanation}</p>
         </div>
-        {/* Space */}
-        <div className="bg-[#111118] border rounded-xl px-5 py-4" style={{borderColor:scS.border}}>
-          <div className="flex items-center justify-between mb-2.5">
-            <div className="flex items-center gap-2 text-xs text-gray-400"><Icon.Box/><span>Space Complexity</span></div>
-            <span className="text-[10px] px-2.5 py-1 rounded-full font-mono font-semibold" style={{background:scS.bg,color:scS.color,border:`1px solid ${scS.border}`}}>{scS.label}</span>
+        <div className="bg-[#0a0a0f] border rounded-xl px-3 py-3" style={{borderColor:scS.border}}>
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1 text-[11px] text-gray-400"><Icon.Box/><span>Space</span></div>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-mono" style={{background:scS.bg,color:scS.color}}>{scS.label}</span>
           </div>
-          <p className="font-mono font-bold text-3xl leading-none mb-2" style={{color:scS.color}}>{sc?.notation||"—"}</p>
-          <p className="text-xs text-gray-500 leading-relaxed">{sc?.explanation}</p>
+          <p className="font-mono font-bold text-xl leading-none mb-1" style={{color:scS.color}}>{sc?.notation||"—"}</p>
+          <p className="text-[11px] text-gray-500 line-clamp-2">{sc?.explanation}</p>
         </div>
       </div>
-
-      {/* Big-O Chart */}
-      {showChart&&<BigOChart notation={tc?.notation}/>}
-
-      {/* Cases + Stats — 2 col */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-5 py-4">
-          <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-3">Case Analysis</p>
-          <div className="space-y-3">
-            {[["Best",best_case,"#34d399"],["Average",average_case,"#facc15"],["Worst",worst_case,"#f87171"]].map(([l,v,c])=>(
-              <div key={l} className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">{l}</span>
-                <span className="font-mono text-sm font-semibold" style={{color:c}}>{v||"—"}</span>
-              </div>
-            ))}
-          </div>
+      {showChart&&<BigOChart notation={tc?.notation} compact/>}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl px-3 py-3">
+          <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-2">Cases</p>
+          {[["Best",best_case,"#34d399"],["Avg",average_case,"#facc15"],["Worst",worst_case,"#f87171"]].map(([l,v,c])=>(
+            <div key={l} className="flex justify-between py-1 border-b border-[#1e1e2e] last:border-0">
+              <span className="text-xs text-gray-500">{l}</span>
+              <span className="font-mono text-xs font-semibold" style={{color:c}}>{v||"—"}</span>
+            </div>
+          ))}
         </div>
-        <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-5 py-4">
-          <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-3">Stats</p>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">Loops detected</span>
-              <span className="font-mono text-sm font-bold text-gray-300">{loops_detected??0}</span>
+        <div className="bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl px-3 py-3">
+          <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-2">Stats</p>
+          {[["Loops",loops_detected??0,"text-gray-300"],["Recursive",recursive?"Yes":"No",recursive?"text-orange-400":"text-gray-300"]].map(([l,v,c])=>(
+            <div key={l} className="flex justify-between py-1 border-b border-[#1e1e2e] last:border-0">
+              <span className="text-xs text-gray-500">{l}</span>
+              <span className={`font-mono text-xs font-bold ${c}`}>{v}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">Recursive</span>
-              <span className={`font-mono text-sm font-bold ${recursive?"text-orange-400":"text-gray-300"}`}>{recursive?"Yes":"No"}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">Overall score</span>
-              <span className="font-mono text-sm font-bold" style={{color:scoreColor(overall_score||0)}}>{overall_score||0}/100</span>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
-
-      {bottleneck&&(
-        <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-5 py-4">
-          <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-2">Bottleneck</p>
-          <p className="text-xs text-amber-400 font-mono leading-relaxed">{bottleneck}</p>
-        </div>
-      )}
-
+      {bottleneck&&<div className="bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl px-3 py-3"><p className="text-[10px] text-gray-600 font-mono mb-1">Bottleneck</p><p className="text-xs text-amber-400 font-mono">{bottleneck}</p></div>}
       {suggestions?.length>0&&(
-        <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-5 py-4">
-          <div className="flex items-center gap-2 text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-3"><Icon.Lightbulb/><span>Suggestions</span></div>
-          <ul className="space-y-3">
-            {suggestions.map((s,i)=>(
-              <li key={i} className="flex items-start gap-3 text-sm text-gray-400">
-                <span className="mt-0.5 w-5 h-5 rounded-full bg-purple-900/50 border border-purple-700/40 flex items-center justify-center text-purple-400 shrink-0 text-[9px] font-mono">{i+1}</span>
-                <span className="leading-relaxed">{s}</span>
-              </li>
-            ))}
-          </ul>
+        <div className="bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl px-3 py-3">
+          <p className="text-[10px] text-gray-600 font-mono mb-2">Suggestions</p>
+          <ul className="space-y-1.5">{suggestions.map((s,i)=><li key={i} className="flex gap-2 text-xs text-gray-400"><span className="text-purple-500 shrink-0">›</span>{s}</li>)}</ul>
         </div>
       )}
-
-      {showRefactor && <RefactorPanel code={code} language={language} result={result}/>}
     </div>
   );
 }
@@ -325,7 +292,6 @@ function RefactorPanel({ code, language, result }) {
   const [err,    setErr]    = useState(null);
   const [copied, setCopied] = useState(false);
 
-  // Only show for fair / poor / critical
   const canRefactor = ["fair","poor","critical"].includes(result?.time_complexity?.rating);
   if (!canRefactor) return null;
 
@@ -333,19 +299,15 @@ function RefactorPanel({ code, language, result }) {
     setBusy(true); setErr(null); setData(null);
     try {
       const res  = await fetch("/api/refactor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code,
-          language,
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ code, language,
           current_time:  result.time_complexity?.notation,
-          current_score: result.overall_score,
-        }),
+          current_score: result.overall_score }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || "Refactor failed");
       setData(json.result);
-    } catch (e) { setErr(e.message); }
+    } catch(e) { setErr(e.message); }
     finally { setBusy(false); }
   };
 
@@ -354,15 +316,25 @@ function RefactorPanel({ code, language, result }) {
     setCopied(true); setTimeout(()=>setCopied(false), 1500);
   };
 
+  const ext = language==="python"?"py":language==="typescript"?"ts":"js";
+
   return (
-    <div className="space-y-4 pt-1">
-      {/* CTA button — only before refactor runs */}
+    <div className="space-y-3 pt-1">
+
+      {/* ── Divider ── */}
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-emerald-900/30"/>
+        <span className="text-[10px] text-emerald-700 font-mono uppercase tracking-widest">Auto-Refactor</span>
+        <div className="h-px flex-1 bg-emerald-900/30"/>
+      </div>
+
+      {/* ── CTA ── */}
       {!data && (
         <button onClick={run} disabled={busy}
           className={`w-full py-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 border transition-all ${
             busy
-              ? "bg-emerald-900/15 text-emerald-600 border-emerald-800/30 cursor-not-allowed"
-              : "bg-emerald-900/15 border-emerald-700/30 text-emerald-400 hover:bg-emerald-900/30 hover:border-emerald-600/50 active:scale-[0.99]"
+              ? "bg-emerald-900/10 text-emerald-600 border-emerald-800/20 cursor-not-allowed"
+              : "bg-emerald-900/10 border-emerald-800/30 text-emerald-400 hover:bg-emerald-900/25 hover:border-emerald-600/50 active:scale-[0.99]"
           }`}>
           {busy
             ? <><Icon.Spin/>Generating optimised code…</>
@@ -377,64 +349,67 @@ function RefactorPanel({ code, language, result }) {
       )}
 
       {data && (
-        <div className="space-y-4">
-          {/* Before / After banner */}
-          <div className="bg-emerald-950/20 border border-emerald-800/30 rounded-xl px-5 py-5">
-            <div className="flex items-center gap-2 text-emerald-400 font-semibold mb-2">
-              <Icon.Wand/><span className="text-sm">Optimisation Complete</span>
+        <div className="space-y-3">
+
+          {/* ── Before / After + Summary ── */}
+          <div className="bg-emerald-950/15 border border-emerald-800/25 rounded-xl px-5 py-4">
+            <div className="flex items-center gap-2 text-emerald-400 font-semibold mb-1.5 text-sm">
+              <Icon.Wand/> Optimisation Complete
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed mb-5">{data.improvement_summary}</p>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-[#0a0a0f] rounded-xl p-4 text-center border border-[#1e1e2e]">
+            <p className="text-xs text-gray-400 leading-relaxed mb-4">{data.improvement_summary}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-[#0a0a0f] rounded-xl p-3.5 text-center border border-[#1e1e2e]">
                 <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-2">Before</p>
-                <p className="font-mono font-bold text-xl" style={{color:scoreColor(result.overall_score)}}>{result.time_complexity?.notation}</p>
+                <p className="font-mono font-bold text-lg" style={{color:scoreColor(result.overall_score)}}>{result.time_complexity?.notation}</p>
                 <p className="text-xs text-gray-600 mt-1">{result.overall_score}/100</p>
               </div>
-              <div className="bg-[#0a0a0f] rounded-xl p-4 text-center border border-emerald-800/30">
+              <div className="bg-[#0a0a0f] rounded-xl p-3.5 text-center border border-emerald-800/30">
                 <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-2">After</p>
-                <p className="font-mono font-bold text-xl" style={{color:scoreColor(data.score_after)}}>{data.new_time_complexity}</p>
+                <p className="font-mono font-bold text-lg" style={{color:scoreColor(data.score_after)}}>{data.new_time_complexity}</p>
                 <p className="text-xs text-emerald-500 mt-1">
                   {data.score_after}/100
-                  {data.score_after > result.overall_score && <span className="ml-1">(+{data.score_after - result.overall_score})</span>}
+                  {data.score_after > result.overall_score && <span className="ml-1 font-semibold">(+{data.score_after - result.overall_score})</span>}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* What changed */}
-          {data.changes?.length > 0 && (
-            <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-5 py-4">
-              <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-3">What Changed</p>
-              <ul className="space-y-2.5">
-                {data.changes.map((c,i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm text-gray-400">
-                    <span className="text-emerald-500 font-bold shrink-0 mt-0.5">✓</span>
-                    <span className="leading-relaxed">{c}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Optimised code */}
-          <div className="bg-[#0d0d14] border border-emerald-800/25 rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-[#1e1e2e]">
-              <span className="text-xs text-emerald-600 font-mono">
-                optimised.{language==="python"?"py":language==="typescript"?"ts":"js"}
-              </span>
-              <div className="flex items-center gap-2">
-                <button onClick={copy}
-                  className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-emerald-400 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
-                  {copied ? <><Icon.Check/>Copied!</> : <><Icon.Copy/>Copy</>}
-                </button>
-                <button onClick={run} disabled={busy}
-                  className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-emerald-400 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e] disabled:opacity-40">
-                  <Icon.Reload/>Regenerate
-                </button>
+          {/* ── What Changed + Code — side by side ── */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Left: what changed */}
+            {data.changes?.length > 0 && (
+              <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-4 py-4">
+                <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-3">What Changed</p>
+                <ul className="space-y-2.5">
+                  {data.changes.map((c,i)=>(
+                    <li key={i} className="flex items-start gap-2 text-xs text-gray-400 leading-relaxed">
+                      <span className="text-emerald-500 font-bold shrink-0 mt-0.5">✓</span>
+                      <span>{c}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
+            )}
+
+            {/* Right: optimised code */}
+            <div className="bg-[#0d0d14] border border-emerald-800/20 rounded-xl overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#1e1e2e]">
+                <span className="text-xs text-emerald-700 font-mono">optimised.{ext}</span>
+                <div className="flex items-center gap-1">
+                  <button onClick={copy}
+                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-emerald-400 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
+                    {copied?<><Icon.Check/>Copied!</>:<><Icon.Copy/>Copy</>}
+                  </button>
+                  <button onClick={run} disabled={busy}
+                    className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-emerald-400 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e] disabled:opacity-40">
+                    <Icon.Reload/>Retry
+                  </button>
+                </div>
+              </div>
+              <pre className="px-4 py-4 text-xs text-[#e2e8f0] font-mono overflow-auto max-h-72 whitespace-pre leading-relaxed flex-1">{data.refactored_code}</pre>
             </div>
-            <pre className="px-5 py-5 text-sm text-[#e2e8f0] font-mono overflow-x-auto max-h-80 whitespace-pre-wrap leading-relaxed">{data.refactored_code}</pre>
           </div>
+
         </div>
       )}
     </div>
@@ -735,7 +710,7 @@ export default function Home() {
   return(
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       {/* ── Full width wrapper, generous padding ── */}
-      <div className="max-w-[1400px] mx-auto px-8 py-12">
+      <div className="max-w-[1400px] mx-auto px-16 py-12">
 
         {/* Header */}
         <header className="mb-12 text-center">
@@ -765,89 +740,189 @@ export default function Home() {
 
         {/* ── ANALYSE ── */}
         {mode==="analyse"&&(
-          <div className="grid grid-cols-2 gap-8 items-start">
-            {/* LEFT — editor */}
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3 flex-wrap">
-                <LanguageDropdown language={language} onChange={handleLanguageChange}/>
-                {SAMPLES[language]&&(
-                  <button onClick={loadDemo} className="flex items-center gap-1.5 px-4 py-2 text-xs text-gray-400 border border-[#1e1e2e] rounded-xl hover:border-purple-700 hover:text-purple-400 transition-all font-mono">
-                    <Icon.Flask/>Load demo
-                  </button>
-                )}
-                <span className="ml-auto text-[10px] text-gray-600 font-mono">{code.split("\n").length} lines · {code.length} chars</span>
-              </div>
-              <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-3 border-b border-[#1e1e2e]">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-red-500 opacity-60"/>
-                    <span className="w-3 h-3 rounded-full bg-yellow-500 opacity-60"/>
-                    <span className="w-3 h-3 rounded-full bg-green-500 opacity-60"/>
-                    <span className="ml-3 text-xs text-gray-600 font-mono">{currentLang?.label}.{currentLang?.ext}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button onClick={copyCode} disabled={!code.trim()} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white disabled:opacity-30 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
-                      {copied?<><Icon.Check/>Copied!</>:<><Icon.Copy/>Copy</>}
-                    </button>
-                    <button onClick={()=>{setCode("");setResult(null);setError(null);setValErr(null);}} disabled={!code.trim()} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-400 disabled:opacity-30 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
-                      <Icon.Trash/>Clear
-                    </button>
-                  </div>
-                </div>
-                <textarea value={code} onChange={e=>{setCode(e.target.value);setResult(null);setValErr(null);}}
-                  className="code-editor w-full bg-transparent px-6 py-5 text-[#e2e8f0] resize-none outline-none min-h-[480px] text-sm leading-relaxed font-mono"
-                  placeholder={`// Paste your ${currentLang?.label} code here…`}
-                  spellCheck={false} autoComplete="off" autoCapitalize="off"/>
-              </div>
-              {valErr&&(
-                <div className="flex items-center gap-2 bg-red-950/40 border border-red-800/50 rounded-xl px-4 py-3 text-xs text-red-400">
-                  <Icon.AlertCircle/>{valErr}
-                </div>
-              )}
-              <button onClick={analyse} disabled={loading}
-                className={`w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all text-sm ${loading?"bg-purple-900/40 text-purple-400 cursor-not-allowed border border-purple-800/40":"bg-purple-600 hover:bg-purple-500 text-white active:scale-[0.99] shadow-lg shadow-purple-900/30"}`}>
-                {loading?<><svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Analysing…</>:<><Icon.Zap/>Analyse Complexity</>}
-              </button>
-            </div>
+          <div className="space-y-6">
 
-            {/* RIGHT — results */}
-            <div className="flex flex-col min-h-[560px]">
-              {loading&&<AnalysingLoader/>}
-              {!loading&&error&&(
-                <div className="flex items-start gap-3 bg-red-950/30 border border-red-800/50 rounded-xl p-5 text-sm text-red-400">
-                  <Icon.AlertCircle/>
-                  <div><p className="font-semibold mb-1">Analysis failed</p><p className="text-xs opacity-80">{error}</p></div>
+            {/* ── TOP ROW: Editor + Quick Stats ── */}
+            <div className="grid gap-6" style={{gridTemplateColumns:"1fr 1fr"}}>
+
+              {/* LEFT — editor */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <LanguageDropdown language={language} onChange={handleLanguageChange}/>
+                  {SAMPLES[language]&&(
+                    <button onClick={loadDemo} className="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-400 border border-[#1e1e2e] rounded-xl hover:border-purple-700 hover:text-purple-400 transition-all font-mono">
+                      <Icon.Flask/>Load demo
+                    </button>
+                  )}
+                  <span className="ml-auto text-[10px] text-gray-600 font-mono">{code.split("\n").length}L · {code.length}ch</span>
                 </div>
-              )}
-              {!loading&&!result&&!error&&(
-                <div className="flex-1 flex flex-col items-center justify-center text-center py-16 border border-dashed border-[#1e1e2e] rounded-xl h-full">
-                  <div className="w-20 h-20 rounded-2xl bg-[#111118] border border-[#1e1e2e] flex items-center justify-center mb-6 text-gray-600"><Icon.Code/></div>
-                  <p className="text-gray-500 mb-2">No analysis yet</p>
-                  <p className="text-gray-700 text-sm mb-12">Paste code and click <span className="text-purple-400">Analyse Complexity</span></p>
-                  <div className="w-full max-w-sm">
-                    <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-4">Complexity Reference</p>
-                    <div className="space-y-3 text-left">
-                      {[
-                        {n:"O(1)",       label:"Constant",     w:"5%",   c:"bg-cyan-400"  },
-                        {n:"O(log n)",   label:"Logarithmic",  w:"15%",  c:"bg-green-400" },
-                        {n:"O(n)",       label:"Linear",       w:"30%",  c:"bg-lime-400"  },
-                        {n:"O(n log n)", label:"Linearithmic", w:"45%",  c:"bg-yellow-400"},
-                        {n:"O(n²)",      label:"Quadratic",    w:"65%",  c:"bg-orange-400"},
-                        {n:"O(2ⁿ)",      label:"Exponential",  w:"85%",  c:"bg-red-400"   },
-                        {n:"O(n!)",      label:"Factorial",    w:"100%", c:"bg-red-700"   },
-                      ].map(({n,label,w,c})=>(
-                        <div key={n} className="flex items-center gap-3">
-                          <code className="text-xs font-mono text-gray-400 w-24 shrink-0">{n}</code>
-                          <div className="flex-1 bg-[#0a0a0f] rounded h-2"><div className={`h-full rounded ${c}`} style={{width:w}}/></div>
-                          <span className="text-xs text-gray-600 w-24 shrink-0">{label}</span>
-                        </div>
-                      ))}
+                <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl overflow-hidden flex-1">
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#1e1e2e]">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-red-500 opacity-60"/>
+                      <span className="w-3 h-3 rounded-full bg-yellow-500 opacity-60"/>
+                      <span className="w-3 h-3 rounded-full bg-green-500 opacity-60"/>
+                      <span className="ml-2 text-xs text-gray-600 font-mono">{currentLang?.label}.{currentLang?.ext}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={copyCode} disabled={!code.trim()} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white disabled:opacity-30 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
+                        {copied?<><Icon.Check/>Copied!</>:<><Icon.Copy/>Copy</>}
+                      </button>
+                      <button onClick={()=>{setCode("");setResult(null);setError(null);setValErr(null);}} disabled={!code.trim()} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-400 disabled:opacity-30 transition-colors px-2 py-1 rounded hover:bg-[#1e1e2e]">
+                        <Icon.Trash/>Clear
+                      </button>
                     </div>
                   </div>
+                  <textarea value={code} onChange={e=>{setCode(e.target.value);setResult(null);setValErr(null);}}
+                    className="code-editor w-full bg-transparent px-5 py-4 text-[#e2e8f0] resize-none outline-none min-h-[340px] text-sm leading-relaxed font-mono"
+                    placeholder={`// Paste your ${currentLang?.label} code here…`}
+                    spellCheck={false} autoComplete="off" autoCapitalize="off"/>
                 </div>
-              )}
-              {result&&!loading&&<ResultPanel result={result} code={code} language={language} showRefactor/>}
+                {valErr&&(
+                  <div className="flex items-center gap-2 bg-red-950/40 border border-red-800/50 rounded-xl px-4 py-3 text-xs text-red-400">
+                    <Icon.AlertCircle/>{valErr}
+                  </div>
+                )}
+                <button onClick={analyse} disabled={loading}
+                  className={`w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all text-sm ${loading?"bg-purple-900/40 text-purple-400 cursor-not-allowed border border-purple-800/40":"bg-purple-600 hover:bg-purple-500 text-white active:scale-[0.99] shadow-lg shadow-purple-900/30"}`}>
+                  {loading?<><svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Analysing…</>:<><Icon.Zap/>Analyse Complexity</>}
+                </button>
+              </div>
+
+              {/* RIGHT — score + time + space, or empty state */}
+              <div className="flex flex-col gap-3">
+                {loading&&<AnalysingLoader/>}
+                {!loading&&error&&(
+                  <div className="flex items-start gap-3 bg-red-950/30 border border-red-800/50 rounded-xl p-5 text-sm text-red-400 h-full">
+                    <Icon.AlertCircle/>
+                    <div><p className="font-semibold mb-1">Analysis failed</p><p className="text-xs opacity-80">{error}</p></div>
+                  </div>
+                )}
+                {!loading&&!result&&!error&&(
+                  <div className="flex-1 flex flex-col items-center justify-center text-center py-10 border border-dashed border-[#1e1e2e] rounded-xl">
+                    <div className="w-16 h-16 rounded-2xl bg-[#111118] border border-[#1e1e2e] flex items-center justify-center mb-4 text-gray-600"><Icon.Code/></div>
+                    <p className="text-gray-500 text-sm mb-1">No analysis yet</p>
+                    <p className="text-gray-700 text-xs mb-8">Paste code and click <span className="text-purple-400">Analyse</span></p>
+                    <div className="w-full max-w-xs px-4">
+                      <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-3">Complexity Reference</p>
+                      <div className="space-y-2 text-left">
+                        {[
+                          {n:"O(1)",       label:"Constant",     w:"5%",   c:"bg-cyan-400"  },
+                          {n:"O(log n)",   label:"Logarithmic",  w:"15%",  c:"bg-green-400" },
+                          {n:"O(n)",       label:"Linear",       w:"30%",  c:"bg-lime-400"  },
+                          {n:"O(n log n)", label:"Linearithmic", w:"45%",  c:"bg-yellow-400"},
+                          {n:"O(n²)",      label:"Quadratic",    w:"65%",  c:"bg-orange-400"},
+                          {n:"O(2ⁿ)",      label:"Exponential",  w:"85%",  c:"bg-red-400"   },
+                          {n:"O(n!)",      label:"Factorial",    w:"100%", c:"bg-red-700"   },
+                        ].map(({n,label,w,c})=>(
+                          <div key={n} className="flex items-center gap-3">
+                            <code className="text-[11px] font-mono text-gray-400 w-20 shrink-0">{n}</code>
+                            <div className="flex-1 bg-[#0a0a0f] rounded h-1.5"><div className={`h-full rounded ${c}`} style={{width:w}}/></div>
+                            <span className="text-[11px] text-gray-600 w-20 text-right shrink-0">{label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* Score + Time + Space top cards — shown when result exists */}
+                {result&&!loading&&(()=>{
+                  const tc=result.time_complexity, sc=result.space_complexity;
+                  const tcS=ratingStyle(tc?.rating), scS=ratingStyle(sc?.rating);
+                  return(
+                    <div className="flex flex-col gap-3 h-full">
+                      {/* Score ring + quick badges */}
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl flex flex-col items-center justify-center gap-1.5 py-5">
+                          <ScoreRing score={result.overall_score||0}/>
+                          <p className="text-[10px] text-gray-600 font-mono">Score</p>
+                        </div>
+                        <div className="bg-[#111118] border rounded-xl px-4 py-4" style={{borderColor:tcS.border}}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-1.5 text-[11px] text-gray-400"><Icon.Clock/><span>Time</span></div>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-mono font-semibold" style={{background:tcS.bg,color:tcS.color,border:`1px solid ${tcS.border}`}}>{tcS.label}</span>
+                          </div>
+                          <p className="font-mono font-bold text-2xl leading-none mb-1.5" style={{color:tcS.color}}>{tc?.notation||"—"}</p>
+                          <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-3">{tc?.explanation}</p>
+                        </div>
+                        <div className="bg-[#111118] border rounded-xl px-4 py-4" style={{borderColor:scS.border}}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-1.5 text-[11px] text-gray-400"><Icon.Box/><span>Space</span></div>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-mono font-semibold" style={{background:scS.bg,color:scS.color,border:`1px solid ${scS.border}`}}>{scS.label}</span>
+                          </div>
+                          <p className="font-mono font-bold text-2xl leading-none mb-1.5" style={{color:scS.color}}>{sc?.notation||"—"}</p>
+                          <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-3">{sc?.explanation}</p>
+                        </div>
+                      </div>
+                      {/* Cases + Stats side by side */}
+                      <div className="grid grid-cols-2 gap-3 flex-1">
+                        <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-4 py-4">
+                          <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-3">Case Analysis</p>
+                          <div className="space-y-2.5">
+                            {[["Best",result.best_case,"#34d399"],["Average",result.average_case,"#facc15"],["Worst",result.worst_case,"#f87171"]].map(([l,v,c])=>(
+                              <div key={l} className="flex items-center justify-between py-1 border-b border-[#1e1e2e] last:border-0">
+                                <span className="text-xs text-gray-500">{l}</span>
+                                <span className="font-mono text-sm font-semibold" style={{color:c}}>{v||"—"}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-4 py-4">
+                          <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-3">Stats</p>
+                          <div className="space-y-2.5">
+                            {[
+                              ["Loops",     result.loops_detected??0,           "text-gray-300"],
+                              ["Recursive", result.recursive?"Yes":"No",        result.recursive?"text-orange-400":"text-gray-300"],
+                              ["Score",     `${result.overall_score||0}/100`,   ""],
+                            ].map(([l,v,cls])=>(
+                              <div key={l} className="flex items-center justify-between py-1 border-b border-[#1e1e2e] last:border-0">
+                                <span className="text-xs text-gray-500">{l}</span>
+                                <span className={`font-mono text-sm font-bold ${cls}`} style={l==="Score"?{color:scoreColor(result.overall_score||0)}:{}}>{v}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
+
+            {/* ── RESULTS FULL WIDTH (only when result exists) ── */}
+            {result&&!loading&&(
+              <div className="space-y-4">
+
+                {/* Big-O Chart — full width */}
+                <BigOChart notation={result.time_complexity?.notation}/>
+
+                {/* Bottleneck + Suggestions side by side */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-5 py-4">
+                    <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-2.5">Bottleneck</p>
+                    {result.bottleneck
+                      ? <p className="text-xs text-amber-400 font-mono leading-relaxed">{result.bottleneck}</p>
+                      : <p className="text-xs text-gray-700 italic">No bottleneck detected</p>}
+                  </div>
+                  <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl px-5 py-4">
+                    <div className="flex items-center gap-1.5 text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-2.5"><Icon.Lightbulb/><span>Suggestions</span></div>
+                    {result.suggestions?.length>0
+                      ?<ul className="space-y-2">
+                        {result.suggestions.map((s,i)=>(
+                          <li key={i} className="flex items-start gap-2 text-xs text-gray-400 leading-relaxed">
+                            <span className="w-4 h-4 rounded-full bg-purple-900/50 border border-purple-700/40 flex items-center justify-center text-purple-400 shrink-0 text-[9px] font-mono mt-0.5">{i+1}</span>
+                            {s}
+                          </li>
+                        ))}
+                      </ul>
+                      :<p className="text-xs text-gray-700 italic">No suggestions</p>}
+                  </div>
+                </div>
+
+                {/* Refactor — full width */}
+                <RefactorPanel code={code} language={language} result={result}/>
+              </div>
+            )}
           </div>
         )}
 
